@@ -463,6 +463,15 @@ void DumpObj(FILE* ObjFile)
   }
 }
 
+int IsDOSImg(FILE* File) {
+  // TODO: check for IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE...
+  return 0;
+}
+
+void DumpNTImg(FILE* File) {
+  // TODO: Dump IMAGE_DOS_HEADER, IMAGE_NT_HEADERS...
+}
+
 int main(int argc, char *argv[])
 {
   /* TODO: Make it C? replace default args w/ macros?, etc */
@@ -480,7 +489,12 @@ int main(int argc, char *argv[])
 
   /* TODO: identify file type (obj, res, exe...) based on headers and
              filename extension and dump accordingly */
-  DumpObj(InFile);
+  if (IsDOSImg(InFile)) {
+    DumpNTImg(InFile);
+  }
+  else {
+    DumpObj(InFile);
+  }
 
   fclose(InFile);
 
