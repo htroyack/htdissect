@@ -1,155 +1,4 @@
-#include <stdio.h>
-#include <stdint.h>
-
-/*******************************************************************************
-*                                                                              *
-* byte   F  E  D  C  B  A  9  8  7  6  5  4  3  2  1  0  (1<<n)                *
-*      =================================================                       *
-*      |P0|P1|P2|P3|O0|O1|Mo|SI|D0|D1|D2|D3|I0|I1|I2|I3|                       *
-*      =================================================                       *
-*        |           |     |  |  |           |                                 *
-*        |           |     |  |  |           +-- Immediate (optional)          *
-*        |           |     |  |  +-- Displacement (optional)                   *
-*        |           |     |  +-- SIB  (optional)                              *
-*        |           |     +-- ModR/M (optional)                               *
-*        |           +-- Opcode                                                *
-*        +-- Prefixes (optional)                                               *
-*                                                                              *
-*******************************************************************************/
-typedef struct _INSTRUCTION {
-  struct prefix {
-    uint8_t p0;
-    uint8_t p1;
-    uint8_t p2;
-    uint8_t p3;
-  };
-
-  struct opcode {
-    uint8_t o0;
-    uint8_t o1;
-  };
-
-  struct modr_m {
-    uint8_t modr_m;
-  };
-
-  struct sib {
-    uint8_t sib;
-  };
-
-  struct displacement {
-    union {
-      uint8_t db; // displacement byte: 1 byte displacement
-      union {     // 4 byte displacement
-        uint32_t dd; // displacement dword: 4 byte displacement
-        struct {
-          uint8_t dd0;
-          uint8_t dd1;
-          uint8_t dd2;
-          uint8_t dd3;
-        };
-      };
-    };
-  };
-
-  struct immediate {
-    union {
-      uint8_t ib; // immediate byte: 1 byte immediate
-      union {     // 4 byte immediate
-        uint32_t id; // immediate dword: 4 byte immediate
-        struct {
-          uint8_t i0;
-          uint8_t i1;
-          uint8_t i2;
-          uint8_t i3;
-        };
-      };
-    };
-  };
-} INSTRUCTION;
-
-// Group 1 — Lock and repeat prefixes:
-#define PREFIX_LOCK          0xF0
-#define PREFIX_REPNE_REPNZ   0xF2
-#define PREFIX_REP_REPE_REPZ 0xF3
-// Group 2 — Segment override prefixes:
-#define PREFIX_CS_SEGMENT_OVERRIDE 0X2E
-#define PREFIX_SS_SEGMENT_OVERRIDE 0X36
-#define PREFIX_DS_SEGMENT_OVERRIDE 0X3E
-#define PREFIX_ES_SEGMENT_OVERRIDE 0X26
-#define PREFIX_FS_SEGMENT_OVERRIDE 0X64
-#define PREFIX_GS_SEGMENT_OVERRIDE 0X65
-// Branch hints:
-#define PREFIX_JCC_BRANCH_NOT_TAKEN PREFIX_CS_SEGMENT_OVERRIDE
-#define PREFIX_JCC_BRANCH_TAKEN     PREFIX_DS_SEGMENT_OVERRIDE
-// Group 3
-#define PREFIX_OPERAND_SIZE_OVERRIDE 0x66
-// Group 4
-#define PREFIX_ADDRESS_SIZE_OVERRIDE 0x67
-
-int IsPrefix(const uint8_t* byte) {
-  switch (*byte)
-  {
-  // Group 1 — Lock and repeat prefixes:
-  case PREFIX_LOCK:
-  case PREFIX_REPNE_REPNZ:
-  case PREFIX_REP_REPE_REPZ:
-  // Group 2 — Segment override prefixes:
-  case PREFIX_CS_SEGMENT_OVERRIDE: // Branch hints: PREFIX_BRANCH_NOT_TAKEN
-  case PREFIX_SS_SEGMENT_OVERRIDE:
-  case PREFIX_DS_SEGMENT_OVERRIDE: // Branch hints: PREFIX_BRANCH_TAKEN
-  case PREFIX_ES_SEGMENT_OVERRIDE:
-  case PREFIX_FS_SEGMENT_OVERRIDE:
-  case PREFIX_GS_SEGMENT_OVERRIDE:
-  // Group 3
-  case PREFIX_OPERAND_SIZE_OVERRIDE:
-  // Group 4
-  case PREFIX_ADDRESS_SIZE_OVERRIDE:
-    return *byte;
-  }
-
-  return 0;
-}
-
-#define PREFIX0 0x8000 // 1 << F
-#define PREFIX1 0xC000 // 1 << E + ... 0x8000 + 0x4000
-#define PREFIX2 0xE000 // 1 << D + ... 0x8000 + 0x4000 + 0x2000
-#define PREFIX3 0xF000 // 1 << C + ... 0x8000 + 0x4000 + 0x2000 + 0x1000
-
-uint16_t test_prefix (const uint8_t* byte, INSTRUCTION* i) {
-  if (!IsPrefix(byte))
-    return 0;
-  i->p0 = *byte++;
-
-  if (!IsPrefix(byte))
-    return PREFIX0;
-  i->p1 = *byte++;
-
-  if (!IsPrefix(byte))
-    return PREFIX1;
-  i->p2 = *byte++;
-
-  if (!IsPrefix(byte))
-    return PREFIX2;
-  i->p3 = *byte++;
-
-  return PREFIX3;
-}
-
-uint16_t dasm(const uint8_t *code, INSTRUCTION *Instruction) {
-  // TODO: addand respect a maxlen
-  // TODO: inform number of decoded bytes on return?
-  //       (its a count of bits in InstructionFields)
-  uint16_t InstructionFields = 0;
-  InstructionFields |= test_prefix(code, Instruction);
-
-  return InstructionFields;
-}
-
-typedef struct _OPCODE {
-  uint8_t Opcode;
-  const char* Instruction;
-} OPCODE;
+#include "dasm.h"
 
 // Vide: "Intel® 64 and IA - 32 Architectures Software Developer Manuals"
 // "Intel® 64 and IA-32 Architectures Software Developer’s Manual"
@@ -416,27 +265,56 @@ OPCODE opcodes[0x100] = {
   { 0xFF, "???"}  // TODO: WTF? [INC/DEC Grp 5 1A] VIDE Section A.4 ?????
 };
 
-int main()
-{
-  uint8_t code[] = { 0xF2, 0xF2, 0xF2, 0xAE };
-
-  INSTRUCTION Instruction = { 0 };
-  uint16_t InstructionFields = 0;
-  InstructionFields = dasm(code, &Instruction);
-
-  if (InstructionFields & PREFIX0) {
-    printf("Prefix: %02X", Instruction.p0);
-    if (InstructionFields & PREFIX1) {
-      printf(" %02X", Instruction.p1);
-      if (InstructionFields & PREFIX2) {
-        printf(" %02X", Instruction.p2);
-        if (InstructionFields & PREFIX3) {
-          printf(" %02X", Instruction.p3);
-        }
-      }
-    }
-    putchar('\n');
+int IsPrefix(const uint8_t* byte) {
+  switch (*byte)
+  {
+  // Group 1 — Lock and repeat prefixes:
+  case PREFIX_LOCK:
+  case PREFIX_REPNE_REPNZ:
+  case PREFIX_REP_REPE_REPZ:
+  // Group 2 — Segment override prefixes:
+  case PREFIX_CS_SEGMENT_OVERRIDE: // Branch hints: PREFIX_BRANCH_NOT_TAKEN
+  case PREFIX_SS_SEGMENT_OVERRIDE:
+  case PREFIX_DS_SEGMENT_OVERRIDE: // Branch hints: PREFIX_BRANCH_TAKEN
+  case PREFIX_ES_SEGMENT_OVERRIDE:
+  case PREFIX_FS_SEGMENT_OVERRIDE:
+  case PREFIX_GS_SEGMENT_OVERRIDE:
+  // Group 3
+  case PREFIX_OPERAND_SIZE_OVERRIDE:
+  // Group 4
+  case PREFIX_ADDRESS_SIZE_OVERRIDE:
+    return *byte;
   }
 
   return 0;
+}
+
+uint16_t test_prefix (const uint8_t* byte, INSTRUCTION* i) {
+  if (!IsPrefix(byte))
+    return 0;
+  i->p0 = *byte++;
+
+  if (!IsPrefix(byte))
+    return PREFIX0;
+  i->p1 = *byte++;
+
+  if (!IsPrefix(byte))
+    return PREFIX1;
+  i->p2 = *byte++;
+
+  if (!IsPrefix(byte))
+    return PREFIX2;
+  i->p3 = *byte++;
+
+  return PREFIX3;
+}
+
+uint8_t dasm(const uint8_t *code, INSTRUCTION *Instruction) {
+  // TODO: addand respect a maxlen
+  // TODO: inform number of decoded bytes on return?
+  //       (its a count of bits in InstructionFields)
+  uint8_t InstructionFields = 0;
+  InstructionFields |= test_prefix(code, Instruction);
+
+  return InstructionFields;
 }

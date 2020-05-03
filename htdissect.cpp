@@ -61,6 +61,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdint.h>
+#include "dasm.h"
 
 #define TIMESTAMP_STR_SIZE 26
 
@@ -74,22 +75,22 @@
   #endif
 #endif
 
-void GetBytes(void *Dst, size_t BytesCount, FILE *File, long int ReadPos = -1L)
+void GetBytes(void *Dst, size_t BytesCount, FILE *File, long ReadPos = -1L)
 {
   if (ReadPos != -1L) {
     if (fseek(File, ReadPos, SEEK_SET) != 0) {
-      fprintf(stderr, "ERROR trying to read %u bytes from position %u\n",
+      fprintf(stderr, "ERROR trying to read %zu bytes from position %ld\n",
         BytesCount, ReadPos);
       exit(1);
     }
   }
-  size_t pos = ftell(File);
+  long pos = ftell(File);
   size_t read = fread(Dst, BytesCount, 1, File);
   // TODO: Maybe show file size, current position and intended read size
   // TODO: Maybe print an hexdump of whole file?
   if (read != 1)
   {
-    fprintf(stderr, "READ ERROR trying to read %u bytes from position %u\n",
+    fprintf(stderr, "READ ERROR trying to read %zu bytes from position %u\n",
       BytesCount, pos);
     exit(1);
   }
@@ -409,19 +410,25 @@ void DumpImageSectionHeader(PIMAGE_SECTION_HEADER pImageSectionHeader,
   HexDump(&pImageSectionHeader->Characteristics, 4, AbsolutePos);
 }
 
-void DumpImageSectionRawData(FILE* ObjFile, DWORD SizeOfRawData,
-  DWORD PointerToRawData)
+void DumpDisassembly(size_t CodeSize, uint8_t* CodeBytes,
+  size_t StartAddress) {
+  size_t done = 0;
+}
+
+void DumpImageSectionRawData(FILE* ObjFile,
+  IMAGE_SECTION_HEADER * ImageSectionHeader)
 {
-  void* RawData = malloc(SizeOfRawData);
+  void* RawData = malloc(ImageSectionHeader->SizeOfRawData);
   if (!RawData) {
     fprintf(stderr,
       "FAILED TO ALLOC %d BYTES to read SectionRawData from offset 0x%08X\n",
-      SizeOfRawData, PointerToRawData);
+      ImageSectionHeader->SizeOfRawData, ImageSectionHeader->PointerToRawData);
     exit(1);
   }
 
-  size_t PreviousFilePosition = ftell(ObjFile);
-  GetBytes(RawData, SizeOfRawData, ObjFile, PointerToRawData);
+  long PreviousFilePosition = ftell(ObjFile);
+  GetBytes(RawData, ImageSectionHeader->SizeOfRawData, ObjFile,
+    ImageSectionHeader->PointerToRawData);
   if (fseek(ObjFile, PreviousFilePosition, SEEK_SET) != 0) {
     fprintf(stderr,
       "ERROR restoring file stream position indicator "
@@ -430,9 +437,18 @@ void DumpImageSectionRawData(FILE* ObjFile, DWORD SizeOfRawData,
   }
 
   printf("" TAB_CHAR "Section Raw Data %d (0x%08X) byte%s long:\n",
-    SizeOfRawData, SizeOfRawData, (SizeOfRawData != 1) ? "s" : "");
-  size_t SectionRawDataFilePosition = PointerToRawData;
-  HexDump(RawData, SizeOfRawData, &SectionRawDataFilePosition);
+    ImageSectionHeader->SizeOfRawData, ImageSectionHeader->SizeOfRawData,
+    (ImageSectionHeader->SizeOfRawData != 1) ? "s" : "");
+  size_t SectionRawDataFilePosition = ImageSectionHeader->PointerToRawData;
+  HexDump(RawData, ImageSectionHeader->SizeOfRawData, &SectionRawDataFilePosition);
+
+  if (ImageSectionHeader->Characteristics | IMAGE_SCN_CNT_CODE &&
+    ImageSectionHeader->Characteristics | IMAGE_SCN_MEM_EXECUTE) {
+    DumpDisassembly(ImageSectionHeader->SizeOfRawData,
+      (uint8_t*)RawData, ImageSectionHeader->PointerToRawData);
+  }
+
+
   free(RawData);
 }
 
@@ -458,8 +474,7 @@ void DumpObj(FILE* ObjFile)
     /* Grouped Sections (Object Only) The "$"? character (dollar sign) has
        a special interpretation in section names in object files. ... */
 
-    DumpImageSectionRawData(ObjFile, ImageSectionHeader.SizeOfRawData,
-      ImageSectionHeader.PointerToRawData);
+    DumpImageSectionRawData(ObjFile, &ImageSectionHeader);
   }
 }
 

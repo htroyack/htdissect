@@ -135,6 +135,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dasm.c" />
+    <ClCompile Include="dmain.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dasm.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
