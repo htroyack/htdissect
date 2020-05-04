@@ -177,7 +177,7 @@ void HexDump(void *Buffer, size_t Count, size_t *AbsolutePos = 0)
   // TODO: test dumps of more than 16 bytes
   // TODO: test dumps of less than 16 bytes
   while (Count) {
-    printf("  %08X | ", LineOffset);
+    printf("  %08zX | ", LineOffset);
 
     // TODO: Padding before and padding after
     for (unsigned i = 0; i < 16; i++) {
@@ -413,6 +413,9 @@ void DumpImageSectionHeader(PIMAGE_SECTION_HEADER pImageSectionHeader,
 void DumpDisassembly(size_t CodeSize, uint8_t* CodeBytes,
   size_t StartAddress) {
   size_t done = 0;
+
+  INSTRUCTION Instruction;
+  dasm(CodeBytes, &Instruction);
 }
 
 void DumpImageSectionRawData(FILE* ObjFile,

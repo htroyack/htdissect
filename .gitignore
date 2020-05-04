@@ -32,3 +32,6 @@
 *.app
 .vs 
 *.vcxproj.user 
+Debug 
+Release 
+x64 

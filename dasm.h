@@ -98,4 +98,10 @@ typedef struct _OPCODE {
   const char* Instruction;
 } OPCODE;
 
-uint8_t dasm(const uint8_t* code, INSTRUCTION* Instruction);
+#ifdef __cplusplus
+extern "C" {
+#endif
+  uint8_t dasm(const uint8_t* code, INSTRUCTION* Instruction);
+#ifdef __cplusplus
+}
+#endif
