@@ -1,11 +1,11 @@
 #include "dasm.h"
 
-// Vide: "Intel® 64 and IA - 32 Architectures Software Developer Manuals"
-// "Intel® 64 and IA-32 Architectures Software Developer’s Manual"
+// Vide: "IntelÂ® 64 and IA - 32 Architectures Software Developer Manuals"
+// "IntelÂ® 64 and IA-32 Architectures Software Developerâ€™s Manual"
 // "Volume 2 (2A, 2B, 2C & 2D) : Instruction Set Reference, A - Z"
 // "APPENDIX A: OPCODE MAP"
 // "A.3 ONE, TWO, AND THREE-BYTE OPCODE MAPS"
-// "Table A-2. One-byte Opcode Map: (00H — F7H)"
+// "Table A-2. One-byte Opcode Map: (00H â€” F7H)"
 OPCODE opcodes[0x100] = {
   { 0x00, "ADD"},      // ADD
   { 0x01, "ADD"},      // ADD
@@ -268,11 +268,11 @@ OPCODE opcodes[0x100] = {
 int IsPrefix(const uint8_t* byte) {
   switch (*byte)
   {
-  // Group 1 — Lock and repeat prefixes:
+  // Group 1 â€” Lock and repeat prefixes:
   case PREFIX_LOCK:
   case PREFIX_REPNE_REPNZ:
   case PREFIX_REP_REPE_REPZ:
-  // Group 2 — Segment override prefixes:
+  // Group 2 â€” Segment override prefixes:
   case PREFIX_CS_SEGMENT_OVERRIDE: // Branch hints: PREFIX_BRANCH_NOT_TAKEN
   case PREFIX_SS_SEGMENT_OVERRIDE:
   case PREFIX_DS_SEGMENT_OVERRIDE: // Branch hints: PREFIX_BRANCH_TAKEN

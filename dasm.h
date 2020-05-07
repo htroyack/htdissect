@@ -69,11 +69,11 @@ typedef struct _INSTRUCTION {
   };
 } INSTRUCTION;
 
-// Group 1 — Lock and repeat prefixes:
+// Group 1 â€” Lock and repeat prefixes:
 #define PREFIX_LOCK          0xF0
 #define PREFIX_REPNE_REPNZ   0xF2
 #define PREFIX_REP_REPE_REPZ 0xF3
-// Group 2 — Segment override prefixes:
+// Group 2 â€” Segment override prefixes:
 #define PREFIX_CS_SEGMENT_OVERRIDE 0X2E
 #define PREFIX_SS_SEGMENT_OVERRIDE 0X36
 #define PREFIX_DS_SEGMENT_OVERRIDE 0X3E
