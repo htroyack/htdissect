@@ -314,6 +314,118 @@ void PrintImageFileSectionCharacteristics(DWORD Characteristics)
 
 }
 
+#define PRINT_OPT_DEC     0x01
+#define PRINT_OPT_HEX     0x02
+#define PRINT_OPT_HEXDUMP 0x04
+
+void PrintWord(const char* Prefix, const char* Title, uint16_t Word,
+  uint8_t PrintOptions, size_t* AbsolutePos) {
+  printf("%s%s: ", Prefix, Title);
+
+  if (PrintOptions & PRINT_OPT_DEC)
+    printf("%d ", Word);
+
+  if (PrintOptions & PRINT_OPT_HEX)
+    printf("(0x%04X) ", Word);
+
+  putchar('\n');
+
+  if (PrintOptions & PRINT_OPT_HEXDUMP)
+    HexDump(&Word, 2, AbsolutePos);
+}
+
+void PrintDword(const char* Prefix, const char* Title, uint32_t Word,
+  uint8_t PrintOptions, size_t* AbsolutePos) {
+  printf("%s%s: ", Prefix, Title);
+
+  if (PrintOptions & PRINT_OPT_DEC)
+    printf("%d ", Word);
+
+  if (PrintOptions & PRINT_OPT_HEX)
+    printf("(0x%08X) ", Word);
+
+  putchar('\n');
+
+  if (PrintOptions & PRINT_OPT_HEXDUMP)
+    HexDump(&Word, 4, AbsolutePos);
+}
+
+void DumpImageDosHeader(IMAGE_DOS_HEADER *ImageDosHeader,
+  size_t* AbsolutePos) {
+  PrintWord(TAB_CHAR, "Magic number (e_magic)", ImageDosHeader->e_magic,
+    PRINT_OPT_DEC | PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Bytes on last page of file (e_cblp)",
+    ImageDosHeader->e_cblp, PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP,
+    AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Pages in file (e_cp)", ImageDosHeader->e_cp,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Relocations (e_crlc)", ImageDosHeader->e_crlc,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Size of header in paragraphs (e_cparhdr)",
+    ImageDosHeader->e_cparhdr,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Minimum extra paragraphs needed (e_minalloc)",
+    ImageDosHeader->e_minalloc,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Maximum extra paragraphs needed (e_maxalloc)",
+    ImageDosHeader->e_maxalloc,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Initial (relative) SS value (e_ss)",
+    ImageDosHeader->e_ss,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Initial SP value (e_sp)", ImageDosHeader->e_sp,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Checksum (e_csum)", ImageDosHeader->e_csum,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Initial IP value (e_ip)", ImageDosHeader->e_ip,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Initial (relative) CS value (e_cs)",
+    ImageDosHeader->e_cs,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "File address of relocation table (e_lfarlc)",
+    ImageDosHeader->e_lfarlc,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "Overlay number (e_ovno)", ImageDosHeader->e_ovno,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  for (int i = 0; i < 4; i++) {
+    printf("Reserved words (e_res[%d]): %d (0x%04X)\n", i,
+      ImageDosHeader->e_res[i], ImageDosHeader->e_res[i]);
+    HexDump(&ImageDosHeader->e_res[i], 2, AbsolutePos);
+  }
+
+  PrintWord(TAB_CHAR, "OEM identifier (for e_oeminfo) (e_oemid)",
+    ImageDosHeader->e_oemid,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  PrintWord(TAB_CHAR, "OEM information; e_oemid specific (e_oeminfo)",
+    ImageDosHeader->e_oeminfo,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  for (int i = 0; i < 10; i++) {
+    printf("Reserved words (e_res2[%d]): %d (0x%04X)\n", i,
+      ImageDosHeader->e_res2[i], ImageDosHeader->e_res2[i]);
+    HexDump(&ImageDosHeader->e_res2[i], 2, AbsolutePos);
+  }
+
+  PrintDword(TAB_CHAR, "File address of new exe header (e_lfanew)",
+    ImageDosHeader->e_lfanew,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+}
+
 void DumpImageFileHeader(PIMAGE_FILE_HEADER pImageFileHeader,
   size_t *AbsolutePos)
 {
@@ -443,7 +555,8 @@ void DumpImageSectionRawData(FILE* ObjFile,
     ImageSectionHeader->SizeOfRawData, ImageSectionHeader->SizeOfRawData,
     (ImageSectionHeader->SizeOfRawData != 1) ? "s" : "");
   size_t SectionRawDataFilePosition = ImageSectionHeader->PointerToRawData;
-  HexDump(RawData, ImageSectionHeader->SizeOfRawData, &SectionRawDataFilePosition);
+  HexDump(RawData, ImageSectionHeader->SizeOfRawData,
+    &SectionRawDataFilePosition);
 
   if (ImageSectionHeader->Characteristics | IMAGE_SCN_CNT_CODE &&
     ImageSectionHeader->Characteristics | IMAGE_SCN_MEM_EXECUTE) {
@@ -453,6 +566,36 @@ void DumpImageSectionRawData(FILE* ObjFile,
 
 
   free(RawData);
+}
+
+int IsDOSImg(FILE* File) {
+    // TODO: check for IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE...
+    return 0;
+}
+
+int DumpNTImg(FILE* File) {
+    // TODO: Dump IMAGE_DOS_HEADER, IMAGE_NT_HEADERS...
+    IMAGE_DOS_HEADER ImageDosHeader = { 0 };
+    size_t AbsolutePos = 0;
+    printf("Reading IMAGE_DOS_HEADER\n");
+    GetBytes(&ImageDosHeader, sizeof(IMAGE_DOS_HEADER), File);
+
+    if (ImageDosHeader.e_magic != IMAGE_DOS_SIGNATURE) {
+        fprintf(stderr, "\tERROR: IMAGE_DOS_SIGNATURE not found!\n");
+        return 0;
+    }
+
+    DumpImageDosHeader(&ImageDosHeader, &AbsolutePos);
+
+    // TODO: Disassemble and dump DOS Stub
+    // size_t DosStbuSize = ImageDosHeader.e_lfanew - AbsolutePos;
+    // printf(TAB_CHAR "MS-DOS Stub code %d (0x%08X) bytes:\n", DosStbuSize,
+    //   DosStbuSize);
+    // void* DosStub = malloc(DosStbuSize);
+    // GetBytes(DosStub, DosStbuSize, File);
+    // HexDump(DosStub, DosStbuSize, &AbsolutePos);
+
+    return 0;
 }
 
 void DumpObj(FILE* ObjFile)
@@ -481,15 +624,6 @@ void DumpObj(FILE* ObjFile)
   }
 }
 
-int IsDOSImg(FILE* File) {
-  // TODO: check for IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE...
-  return 0;
-}
-
-void DumpNTImg(FILE* File) {
-  // TODO: Dump IMAGE_DOS_HEADER, IMAGE_NT_HEADERS...
-}
-
 int main(int argc, char *argv[])
 {
   /* TODO: Make it C? replace default args w/ macros?, etc */
@@ -507,10 +641,7 @@ int main(int argc, char *argv[])
 
   /* TODO: identify file type (obj, res, exe...) based on headers and
              filename extension and dump accordingly */
-  if (IsDOSImg(InFile)) {
-    DumpNTImg(InFile);
-  }
-  else {
+  if (!DumpNTImg(InFile)) {
     DumpObj(InFile);
   }
 
