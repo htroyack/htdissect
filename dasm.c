@@ -284,8 +284,8 @@ OpcodeExt Group3[8] = {
   { 7, "IDIV" },
 };
 
-int IsPrefix(const uint8_t* byte) {
-  switch (*byte)
+int isPrefix(const uint8_t byte) {
+  switch (byte)
   {
   // Group 1 — Lock and repeat prefixes:
   case PREFIX_LOCK:
@@ -302,48 +302,49 @@ int IsPrefix(const uint8_t* byte) {
   case PREFIX_OPERAND_SIZE_OVERRIDE:
   // Group 4
   case PREFIX_ADDRESS_SIZE_OVERRIDE:
-    return *byte;
+    return byte;
   }
 
   return 0;
 }
 
-uint16_t test_prefix (const uint8_t* byte, INSTRUCTION* i) {
+uint8_t testPrefix (const uint8_t* byte, size_t len, INSTRUCTION* Instruction) {
   // TODO: there may be not second byte in buffer to byte++
 
-  if (!IsPrefix(byte))
+  unsigned short pos = 0;
+
+  if (!len)
+    return DASM_INVALID_INSTRUCTION;
+
+  if (!isPrefix(byte[pos]))
     return 0;
-  i->p0 = *byte++;
+  Instruction->Prefix.p0 = byte[pos];
+  Instruction->Fields = PREFIX0;
+  if (++pos >= len)
+    return DASM_INVALID_INSTRUCTION;
 
-  if (!IsPrefix(byte))
-    return PREFIX0;
-  i->p1 = *byte++;
-
-  if (!IsPrefix(byte))
-    return PREFIX1;
-  i->p2 = *byte++;
-
-  if (!IsPrefix(byte))
-    return PREFIX2;
-  i->p3 = *byte++;
-
-  return PREFIX3;
-}
-
-int CountPrefixes(uint8_t InstructionFields) {
-  switch (InstructionFields)
-  {
-  case 0:
-    return 0;
-  case PREFIX0:
+  if (!isPrefix(byte[pos]))
     return 1;
-  case PREFIX1:
+  Instruction->Prefix.p1 = byte[pos];
+  Instruction->Fields |= PREFIX1;
+  if (++pos >= len)
+    return DASM_INVALID_INSTRUCTION;
+
+  if (!isPrefix(byte[pos]))
     return 2;
-  case PREFIX2:
+  Instruction->Prefix.p2 = byte[pos];
+  Instruction->Fields |= PREFIX2;
+  if (++pos >= len)
+    return DASM_INVALID_INSTRUCTION;
+
+  if (!isPrefix(byte[pos]))
     return 3;
-  default: // case PREFIX3:
-    return 4;
-  }
+  Instruction->Prefix.p3 = byte[pos];
+  Instruction->Fields |= PREFIX3;
+  if (++pos >= len)
+    return DASM_INVALID_INSTRUCTION;
+
+  return 4;
 }
 
 typedef struct _ModRM {
@@ -352,21 +353,29 @@ typedef struct _ModRM {
   uint8_t RM;
 } ModRM;
 
-uint8_t dasm(const uint8_t *code, size_t len, INSTRUCTION *Instruction) {
+uint8_t dasm(const uint8_t *CodeBytes, size_t CodeSize, INSTRUCTION *Instruction) {
   // TODO: add and respect a maxlen
   // TODO: inform number of decoded bytes on return?
   //       (its a count of bits in InstructionFields)
-  uint8_t InstructionFields = 0;
-  InstructionFields |= test_prefix(code, Instruction);
-  code += CountPrefixes(InstructionFields);
+  uint8_t InstructionSize = testPrefix(CodeBytes, CodeSize, Instruction);
+  if (InstructionSize == DASM_INVALID_INSTRUCTION)
+    return InstructionSize;
 
-  const char* InstructionName = opcodes[*code].Instruction;
+  CodeBytes += InstructionSize;
 
-  if (!InstructionName) {
+  Instruction->Name = opcodes[*CodeBytes].Instruction;
+  if (Instruction->Name)
+  {
+    ++InstructionSize;
+  }
+  else {
     OpcodeExt *OpcodeExtGroup = NULL;
 
+    if (InstructionSize >= CodeSize)
+      return DASM_INVALID_INSTRUCTION;
+
     // Bits 5, 4, and 3 of ModR/M byte used as an opcode extension
-    switch(*code) {
+    switch(CodeBytes[InstructionSize++]) {
       // Immediate Grp 1
     case 0x80:
     case 0x81:
@@ -396,7 +405,10 @@ uint8_t dasm(const uint8_t *code, size_t len, INSTRUCTION *Instruction) {
 
     if (OpcodeExtGroup) {
       // TODO: handle cases where there is no next byte
-      Instruction->modr_m = *(code + 1);
+      if (InstructionSize >= CodeSize)
+        return DASM_INVALID_INSTRUCTION;
+
+      Instruction->ModRM.modr_m = CodeBytes[InstructionSize++];
       ModRM modrm = { 0 };
       //        Bit 7654 3210
       //            8421 8421
@@ -404,13 +416,16 @@ uint8_t dasm(const uint8_t *code, size_t len, INSTRUCTION *Instruction) {
       // Mod:       1100 0000 = C0; >> 6 & 3
       // RegOPCode: 0011 1000 = 38; >> 3 & 7
       // RM:        0000 0111 = 07; & 7
-      modrm.Mod = (Instruction->modr_m >> 6) & 3;
-      modrm.RegOPCode = (Instruction->modr_m >> 3) & 7;
-      modrm.RM = Instruction->modr_m & 7;
+      modrm.Mod = (Instruction->ModRM.modr_m >> 6) & 3;
+      modrm.RegOPCode = (Instruction->ModRM.modr_m >> 3) & 7;
+      modrm.RM = Instruction->ModRM.modr_m & 7;
 
-      InstructionName = OpcodeExtGroup[modrm.RegOPCode].Instruction;
+      Instruction->Name = OpcodeExtGroup[modrm.RegOPCode].Instruction;
+
+      if (!Instruction->Name)
+        return DASM_INVALID_INSTRUCTION;
     }
   }
 
-  return InstructionFields;
+  return InstructionSize;
 }

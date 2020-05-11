@@ -154,6 +154,7 @@ const char* ImageFileHeaderMachineName(WORD Machine)
 #define CHEXBYTE FGG
 #define CTXT CHEXBYTE
 #define CERROR (FGR|FGI)
+#define CHEXINST (FGR|FGB)
 
 int ceprintf(WORD wAttributes, const char* format, ...) {
   CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
@@ -590,10 +591,21 @@ void DumpImageSectionHeader(PIMAGE_SECTION_HEADER pImageSectionHeader,
 void DumpDisassembly(uint8_t* CodeBytes, size_t CodeSize,
   size_t StartAddress) {
   // TODO: Disassemble x86-64/x64
-  size_t done = 0;
+  // TODO: Check to avoid reading past buffer
+  size_t InitialCodeBytes = (size_t)CodeBytes;
+  size_t InstructionSize = 0;
 
   INSTRUCTION Instruction;
-  dasm(CodeBytes, CodeSize, &Instruction);
+  while (DASM_INVALID_INSTRUCTION != (InstructionSize = dasm(CodeBytes, CodeSize, &Instruction))) {
+    CodeSize -= InstructionSize;
+    CodeBytes += InstructionSize;
+    cprintf(CHEXOFFSET, "%p: ", StartAddress+(CodeBytes- InitialCodeBytes)-InstructionSize);
+    for (uint8_t *bytes = CodeBytes- InstructionSize; bytes < CodeBytes; bytes++)
+      cprintf(CHEXBYTE, "%02X ", *bytes);
+    for (int i = 6 - InstructionSize; i > 0; i--)
+      printf("   ");
+    cprintf(CHEXINST, "%s\n", Instruction.Name);
+  }
 }
 
 void DumpImageSectionRawData(FILE* ObjFile,

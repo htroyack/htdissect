@@ -17,28 +17,27 @@
 *        +-- Prefixes (optional)                                               *
 *                                                                              *
 *******************************************************************************/
-typedef struct _INSTRUCTION {
-  struct prefix {
+  typedef struct _prefix {
     uint8_t p0;
     uint8_t p1;
     uint8_t p2;
     uint8_t p3;
-  };
+  } prefix;
 
-  struct opcode {
+  typedef struct _opcode {
     uint8_t o0;
     uint8_t o1;
-  };
+  } opcode;
 
-  struct modr_m {
+  typedef union _modr_m {
     uint8_t modr_m;
-  };
+  } modr_m;
 
-  struct sib {
+  typedef struct _sib {
     uint8_t sib;
-  };
+  } sib;
 
-  struct displacement {
+  typedef struct _displacement {
     union {
       uint8_t db; // displacement byte: 1 byte displacement
       union {     // 4 byte displacement
@@ -48,25 +47,34 @@ typedef struct _INSTRUCTION {
           uint8_t dd1;
           uint8_t dd2;
           uint8_t dd3;
-        };
+        } displacementbytes;
       };
     };
-  };
+  } displacement;
 
-  struct immediate {
+  typedef struct _immediate {
     union {
       uint8_t ib; // immediate byte: 1 byte immediate
       union {     // 4 byte immediate
         uint32_t id; // immediate dword: 4 byte immediate
-        struct {
+        struct{
           uint8_t i0;
           uint8_t i1;
           uint8_t i2;
           uint8_t i3;
-        };
+        } immediatedword;
       };
     };
-  };
+  } immediate;
+
+typedef struct _INSTRUCTION {
+  prefix Prefix;
+  opcode Opcode;
+  modr_m ModRM;
+  sib SIB;
+  displacement Displacement;
+  uint8_t Fields;
+  const char *Name;
 } INSTRUCTION;
 
 // Group 1 — Lock and repeat prefixes:
@@ -88,15 +96,17 @@ typedef struct _INSTRUCTION {
 // Group 4
 #define PREFIX_ADDRESS_SIZE_OVERRIDE 0x67
 
-#define PREFIX0 0x8000 // 1 << F
-#define PREFIX1 0xC000 // 1 << E + ... 0x8000 + 0x4000
-#define PREFIX2 0xE000 // 1 << D + ... 0x8000 + 0x4000 + 0x2000
-#define PREFIX3 0xF000 // 1 << C + ... 0x8000 + 0x4000 + 0x2000 + 0x1000
+#define PREFIX0 (uint8_t)0x8000 // 1 << F
+#define PREFIX1 (uint8_t)0xC000 // 1 << E + ... 0x8000 + 0x4000
+#define PREFIX2 (uint8_t)0xE000 // 1 << D + ... 0x8000 + 0x4000 + 0x2000
+#define PREFIX3 (uint8_t)0xF000 // 1 << C + ... 0x8000 + 0x4000 + 0x2000 + 0x1000
 
 typedef struct _OPCODE {
   uint8_t Opcode;
   const char* Instruction;
 } OPCODE;
+
+#define DASM_INVALID_INSTRUCTION 0xFF
 
 #ifdef __cplusplus
 extern "C" {
