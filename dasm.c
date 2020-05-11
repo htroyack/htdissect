@@ -71,6 +71,9 @@ OPCODE opcodes[0x100] = {
   { 0x3D, "CMP"},      // CMP
   { 0x3E, NULL},       // Instruction Prefixes Group 2 [SEG=DS (Prefix)]
   { 0x3F, "AAS"},
+  /* TODO: The instruction is invalid or not encodable in 64-bit mode.
+     40 through 4F (single-byte INC and DEC) are REX prefix combinations when
+     in 64 - bit mode(use FE / FF Grp 4 and 5 for INCand DEC). */
   { 0x40, "INC EAX"},  // INC
   { 0x41, "INC ECX"},  // INC
   { 0x42, "INC EDX"},  // INC
@@ -135,10 +138,10 @@ OPCODE opcodes[0x100] = {
   { 0x7D, "JNL"},      // TODO: JGE or JNL?
   { 0x7E, "JLE"},      // TODO: JLE or JNG?
   { 0x7F, "JNLE"},     // TODO: JG or JNLE?
-  { 0x80, "???"},      // TODO: WTF? [Immediate Grp 1 1A] VIDE Section A.4 ?????
-  { 0x81, "???"},      // TODO: WTF? [Immediate Grp 1 1A]                  ?????
-  { 0x82, "???"},      // TODO: WTF? [Immediate Grp 1 1A]                  ?????
-  { 0x83, "???"},      // TODO: WTF? [Immediate Grp 1 1A]                  ?????
+  { 0x80, NULL},       // TODO: WTF? [Immediate Grp 1 1A] VIDE Section A.4 ?????
+  { 0x81, NULL},       // TODO: WTF? [Immediate Grp 1 1A]                  ?????
+  { 0x82, NULL},       // TODO: WTF? [Immediate Grp 1 1A]                  ?????
+  { 0x83, NULL},       // TODO: WTF? [Immediate Grp 1 1A]                  ?????
   { 0x84, "TEST"},
   { 0x85, "TEST"},
   { 0x86, "XCHG"},
@@ -199,14 +202,14 @@ OPCODE opcodes[0x100] = {
   { 0xBD, "MOV EBP"},  // MOV
   { 0xBE, "MOV ESI"},  // MOV
   { 0xBF, "MOV EDI"},  // MOV
-  { 0xC0, "???"},      // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
-  { 0xC1, "???"},      // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
+  { 0xC0, NULL},       // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
+  { 0xC1, NULL},       // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
   { 0xC2, "RET"},
   { 0xC3, "RET"},
   { 0xC4, "LES"},
   { 0xC5, "LDS"},
-  { 0xC6, "???"},      // TODO: WTF? [Grp 11 1A] VIDE Section A.4 ?????
-  { 0xC7, "???"},      // TODO: WTF? [Grp 11 1A] VIDE Section A.4 ?????
+  { 0xC6, NULL},       // TODO: WTF? [Grp 11 1A] VIDE Section A.4 ?????
+  { 0xC7, NULL},       // TODO: WTF? [Grp 11 1A] VIDE Section A.4 ?????
   { 0xC8, "ENTER"},
   { 0xC9, "LEAVE"},
   { 0xCA, "RET"},
@@ -215,10 +218,10 @@ OPCODE opcodes[0x100] = {
   { 0xCD, "INT"},
   { 0xCE, "INTO"},
   { 0xCF, "IRETD"},
-  { 0xD0, "???"},      // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
-  { 0xD1, "???"},      // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
-  { 0xD2, "???"},      // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
-  { 0xD3, "???"},      // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
+  { 0xD0, NULL},       // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
+  { 0xD1, NULL},       // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
+  { 0xD2, NULL},       // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
+  { 0xD3, NULL},       // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
   { 0xD4, "AAM"},
   { 0xD5, "AAD"},
   { 0xD6, "SETALC"},   // TODO: UNDOCUMENTED. A.k.a. "SALC" said to set AL to CF
@@ -253,8 +256,8 @@ OPCODE opcodes[0x100] = {
   { 0xF3, NULL},   // Instruction Prefixes Group 1 [REP/REPE XRELEASE (Prefix)]
   { 0xF4, "HLT"},
   { 0xF5, "CMC"},
-  { 0xF6, "???"},  // TODO: WTF? [Unary Grp 3 1A] VIDE Section A.4 ?????
-  { 0xF7, "???"},  // TODO: WTF? [Unary Grp 3 1A] VIDE Section A.4 ?????
+  { 0xF6, NULL},   // TODO: WTF? [Unary Grp 3 1A] VIDE Section A.4 ?????
+  { 0xF7, NULL},   // TODO: WTF? [Unary Grp 3 1A] VIDE Section A.4 ?????
   { 0xF8, "CLC"},
   { 0xF9, "STC"},
   { 0xFA, "CLI"},
@@ -263,6 +266,22 @@ OPCODE opcodes[0x100] = {
   { 0xFD, "STD"},
   { 0xFE, "???"}, // TODO: WTF? [INC/DEC Grp 4 1A] VIDE Section A.4 ?????
   { 0xFF, "???"}  // TODO: WTF? [INC/DEC Grp 5 1A] VIDE Section A.4 ?????
+};
+
+typedef struct {
+  uint8_t ModRMRegOpcode;
+  const char* Instruction;
+} OpcodeExt;
+
+OpcodeExt Group3[8] = {
+  { 0, "TEST" },
+  { 1, NULL },
+  { 2, "NOT" },
+  { 3, "NEG" },
+  { 4, "MUL" },
+  { 5, "IMUL" },
+  { 6, "DIV" },
+  { 7, "IDIV" },
 };
 
 int IsPrefix(const uint8_t* byte) {
@@ -290,6 +309,8 @@ int IsPrefix(const uint8_t* byte) {
 }
 
 uint16_t test_prefix (const uint8_t* byte, INSTRUCTION* i) {
+  // TODO: there may be not second byte in buffer to byte++
+
   if (!IsPrefix(byte))
     return 0;
   i->p0 = *byte++;
@@ -309,12 +330,87 @@ uint16_t test_prefix (const uint8_t* byte, INSTRUCTION* i) {
   return PREFIX3;
 }
 
-uint8_t dasm(const uint8_t *code, INSTRUCTION *Instruction) {
-  // TODO: addand respect a maxlen
+int CountPrefixes(uint8_t InstructionFields) {
+  switch (InstructionFields)
+  {
+  case 0:
+    return 0;
+  case PREFIX0:
+    return 1;
+  case PREFIX1:
+    return 2;
+  case PREFIX2:
+    return 3;
+  default: // case PREFIX3:
+    return 4;
+  }
+}
+
+typedef struct _ModRM {
+  uint8_t Mod;
+  uint8_t RegOPCode;
+  uint8_t RM;
+} ModRM;
+
+uint8_t dasm(const uint8_t *code, size_t len, INSTRUCTION *Instruction) {
+  // TODO: add and respect a maxlen
   // TODO: inform number of decoded bytes on return?
   //       (its a count of bits in InstructionFields)
   uint8_t InstructionFields = 0;
   InstructionFields |= test_prefix(code, Instruction);
+  code += CountPrefixes(InstructionFields);
+
+  const char* InstructionName = opcodes[*code].Instruction;
+
+  if (!InstructionName) {
+    OpcodeExt *OpcodeExtGroup = NULL;
+
+    // Bits 5, 4, and 3 of ModR/M byte used as an opcode extension
+    switch(*code) {
+      // Immediate Grp 1
+    case 0x80:
+    case 0x81:
+    case 0x82:
+    case 0x83:
+      break;
+      // Shift Grp 2
+    case 0xC0:
+    case 0xC1:
+      break;
+      // Grp 11
+    case 0xC6:
+    case 0xC7:
+      break;
+      // Shift Grp 2
+    case 0xD0:
+    case 0xD1:
+    case 0xD2:
+    case 0xD3:
+      break;
+      // Unary Grp 3
+    case 0xF6:
+    case 0xF7:
+      OpcodeExtGroup = Group3;
+      break;
+    }
+
+    if (OpcodeExtGroup) {
+      // TODO: handle cases where there is no next byte
+      Instruction->modr_m = *(code + 1);
+      ModRM modrm = { 0 };
+      //        Bit 7654 3210
+      //            8421 8421
+      //            1111 1111
+      // Mod:       1100 0000 = C0; >> 6 & 3
+      // RegOPCode: 0011 1000 = 38; >> 3 & 7
+      // RM:        0000 0111 = 07; & 7
+      modrm.Mod = (Instruction->modr_m >> 6) & 3;
+      modrm.RegOPCode = (Instruction->modr_m >> 3) & 7;
+      modrm.RM = Instruction->modr_m & 7;
+
+      InstructionName = OpcodeExtGroup[modrm.RegOPCode].Instruction;
+    }
+  }
 
   return InstructionFields;
 }

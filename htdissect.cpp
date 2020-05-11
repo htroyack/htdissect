@@ -193,9 +193,9 @@ void GetBytes(void* Dst, size_t BytesCount, FILE* File, long ReadPos = -1L)
 {
   if (ReadPos != -1L) {
     if (fseek(File, ReadPos, SEEK_SET) != 0) {
-      // TODO: stderr RED INTENSITY
       ceprintf(CERROR, "ERROR trying to read %zu bytes from position %ld\n",
         BytesCount, ReadPos);
+      // TODO: return a proper error code and handle there, instead of exit()
       exit(1);
     }
   }
@@ -207,6 +207,7 @@ void GetBytes(void* Dst, size_t BytesCount, FILE* File, long ReadPos = -1L)
   {
     ceprintf(CERROR, "READ ERROR trying to read %zu bytes from position %u\n",
       BytesCount, pos);
+    // TODO: return a proper error code and handle there, instead of exit()
     exit(1);
   }
 }
@@ -226,7 +227,7 @@ void HexDump(void *Buffer, size_t Count, size_t *AbsolutePos = 0)
 
   printf("  offset   | ");
   for (int i = 0; i < 16; i++)
-    cprintf(CHEXTITLE, "%02x ", i);
+    cprintf(CHEXTITLE, "%02X ", i);
   printf("|\n");
 
   // TODO: support dump from midfile where addr is not multiple of 16
@@ -375,8 +376,10 @@ void PrintImageFileSectionCharacteristics(DWORD Characteristics)
 #define PRINT_OPT_HEX     0x02
 #define PRINT_OPT_HEXDUMP 0x04
 
-void PrintWord(const char* Prefix, const char* Title, uint16_t Word,
-  uint8_t PrintOptions, size_t* AbsolutePos) {
+#define PrintWord(Prefix, Title, Word, PrintOptions, AbsolutePos) \
+ PrintWordS(Prefix, Title, NULL, Word, PrintOptions, AbsolutePos)
+void PrintWordS(const char* Prefix, const char* Title, const char* Suffix,
+  uint16_t Word, uint8_t PrintOptions, size_t* AbsolutePos) {
   cprintf(CVALUE, "%s%s: ", Prefix, Title);
 
   if (PrintOptions & PRINT_OPT_DEC)
@@ -384,6 +387,9 @@ void PrintWord(const char* Prefix, const char* Title, uint16_t Word,
 
   if (PrintOptions & PRINT_OPT_HEX)
     printf("(0x%04X) ", Word);
+
+  if (Suffix)
+    printf(Suffix);
 
   putchar('\n');
 
@@ -491,13 +497,14 @@ void DumpImageDosHeader(IMAGE_DOS_HEADER *ImageDosHeader,
 void DumpImageFileHeader(PIMAGE_FILE_HEADER pImageFileHeader,
   size_t *AbsolutePos)
 {
-  printf(TAB_CHAR "Machine: %d (0x%04X)\n" TAB_CHAR "" TAB_CHAR "%s\n",
+  cprintf(CVALUE, "Machine: ");
+  printf(TAB_CHAR "%d (0x%04X)\n" TAB_CHAR "" TAB_CHAR "%s\n",
     pImageFileHeader->Machine, pImageFileHeader->Machine,
     ImageFileHeaderMachineName(pImageFileHeader->Machine));
   HexDump(&pImageFileHeader->Machine, 2, AbsolutePos);
 
   PrintWord(TAB_CHAR, "NumberOfSections", pImageFileHeader->NumberOfSections,
-    PRINT_OPT_DEC|PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
 
   time_t ltime = pImageFileHeader->TimeDateStamp;
   char TimeDateStampStr[TIMESTAMP_STR_SIZE];
@@ -511,6 +518,7 @@ void DumpImageFileHeader(PIMAGE_FILE_HEADER pImageFileHeader,
   PrintDword(TAB_CHAR, "NumberOfSymbols", pImageFileHeader->NumberOfSymbols,
     PRINT_OPT_DEC|PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
 
+  // TODO: replace by PrintWord
   printf(TAB_CHAR "SizeOfOptionalHeader: %d (0x%04X)\n",
     pImageFileHeader->SizeOfOptionalHeader,
     pImageFileHeader->SizeOfOptionalHeader);
@@ -579,13 +587,13 @@ void DumpImageSectionHeader(PIMAGE_SECTION_HEADER pImageSectionHeader,
   HexDump(&pImageSectionHeader->Characteristics, 4, AbsolutePos);
 }
 
-void DumpDisassembly(size_t CodeSize, uint8_t* CodeBytes,
+void DumpDisassembly(uint8_t* CodeBytes, size_t CodeSize,
   size_t StartAddress) {
   // TODO: Disassemble x86-64/x64
   size_t done = 0;
 
   INSTRUCTION Instruction;
-  dasm(CodeBytes, &Instruction);
+  dasm(CodeBytes, CodeSize, &Instruction);
 }
 
 void DumpImageSectionRawData(FILE* ObjFile,
@@ -593,7 +601,6 @@ void DumpImageSectionRawData(FILE* ObjFile,
 {
   void* RawData = malloc(ImageSectionHeader->SizeOfRawData);
   if (!RawData) {
-    // TODO: stderr RED INTENSITY
     ceprintf(CERROR,
       "FAILED TO ALLOC %d BYTES to read SectionRawData from offset 0x%08X\n",
       ImageSectionHeader->SizeOfRawData, ImageSectionHeader->PointerToRawData);
@@ -605,10 +612,10 @@ void DumpImageSectionRawData(FILE* ObjFile,
   GetBytes(RawData, ImageSectionHeader->SizeOfRawData, ObjFile,
     ImageSectionHeader->PointerToRawData);
   if (fseek(ObjFile, PreviousFilePosition, SEEK_SET) != 0) {
-    // TODO: stderr RED INTENSITY
     ceprintf(CERROR,
       "ERROR restoring file stream position indicator "
       "after reading section raw data\n");
+    // TODO: return a proper error code and handle there, instead of exit()
     exit(1);
   }
 
@@ -621,8 +628,8 @@ void DumpImageSectionRawData(FILE* ObjFile,
 
   if (ImageSectionHeader->Characteristics | IMAGE_SCN_CNT_CODE &&
     ImageSectionHeader->Characteristics | IMAGE_SCN_MEM_EXECUTE) {
-    DumpDisassembly(ImageSectionHeader->SizeOfRawData,
-      (uint8_t*)RawData, ImageSectionHeader->PointerToRawData);
+    DumpDisassembly((uint8_t*)RawData, ImageSectionHeader->SizeOfRawData,
+      ImageSectionHeader->PointerToRawData);
   }
 
 
@@ -637,7 +644,6 @@ int DumpNTImg(FILE* File) {
     GetBytes(&ImageDOSHeader, sizeof(IMAGE_DOS_HEADER), File);
 
     if (ImageDOSHeader.e_magic != IMAGE_DOS_SIGNATURE) {
-      // TODO: stderr RED INTENSITY
         ceprintf(CERROR, TAB_CHAR "ERROR: IMAGE_DOS_SIGNATURE not found!\n");
         return ERROR_BAD_FORMAT;
     }
@@ -662,7 +668,6 @@ int DumpNTImg(FILE* File) {
       PRINT_OPT_DEC|PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, &AbsolutePos);
 
     if (ImageNTHeaders.Signature != IMAGE_NT_SIGNATURE) {
-      // TODO: stderr RED INTENSITY
       ceprintf(CERROR, TAB_CHAR "ERROR: IMAGE_NT_SIGNATURE not found!\n");
       return ERROR_BAD_FORMAT;
     }
@@ -679,7 +684,6 @@ int DumpNTImg(FILE* File) {
 
 void DumpObj(FILE* ObjFile)
 {
-  // TODO: display hexdump w/ correct position. this may be an COFF or PE
   IMAGE_FILE_HEADER ImageFileHeader = { 0 };
   cprintf(CTITLE, "Reading IMAGE_FILE_HEADER\n");
   GetBytes(&ImageFileHeader, IMAGE_SIZEOF_FILE_HEADER, ObjFile);
@@ -707,7 +711,6 @@ int main(int argc, char *argv[])
 {
   /* TODO: Make it C? replace default args w/ macros?, etc */
   if (argc != 2) {
-    // TODO: stderr RED INTENSITY
     ceprintf(CERROR, "USAGE: %s file", argv[0]);
     return 1;
   }
@@ -715,7 +718,6 @@ int main(int argc, char *argv[])
   // TODO: use memory mapped files
   FILE* InFile = fopen(argv[1], "rb");
   if (!InFile) {
-    // TODO: stderr RED INTENSITY
     ceprintf(CERROR, "Unable to open file '%s'\n", argv[1]);
     return 1;
   }
@@ -723,6 +725,7 @@ int main(int argc, char *argv[])
   /* TODO: identify file type (obj, res, exe...) based on headers and
              filename extension and dump accordingly */
   if (ERROR_BAD_FORMAT == DumpNTImg(InFile)) {
+    fseek(InFile, 0, SEEK_SET);
     DumpObj(InFile);
   }
 

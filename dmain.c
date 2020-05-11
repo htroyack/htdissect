@@ -7,7 +7,7 @@ int main()
 
   INSTRUCTION Instruction = { 0 };
   uint8_t InstructionFields = 0;
-  InstructionFields = dasm(code, &Instruction);
+  InstructionFields = dasm(code, sizeof(code), &Instruction);
 
   if (InstructionFields & PREFIX0) {
     printf("Prefix: %02X", Instruction.p0);
