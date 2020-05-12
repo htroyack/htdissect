@@ -147,7 +147,7 @@ OPCODE opcodes[0x100] = {
   { 0x86, "XCHG"},
   { 0x87, "XCHG"},
   { 0x88, "MOV"},      // MOV
-  { 0x89, "MOV"},      // MOV
+  { 0x89, "MOV", WANT_SLASH_R},      // MOV
   { 0x8A, "MOV"},      // MOV
   { 0x8B, "MOV"},      // MOV
   { 0x8C, "MOV"},
@@ -236,7 +236,7 @@ OPCODE opcodes[0x100] = {
   { 0xDF, "???"},      // TODO: ESC (Escape to coprocessor instruction set)
   { 0xE0, "LOOPNE"},
   { 0xE1, "LOOPE"},
-  { 0xE2, "LOOP"},
+  { 0xE2, "LOOP", CB},
   { 0xE3, "JECXZ"},
   { 0xE4, "IN AL"},
   { 0xE5, "IN EAX"},
@@ -319,28 +319,28 @@ uint8_t testPrefix (const uint8_t* byte, size_t len, INSTRUCTION* Instruction) {
   if (!isPrefix(byte[pos]))
     return 0;
   Instruction->Prefix.p0 = byte[pos];
-  Instruction->Fields = PREFIX0;
+  Instruction->FieldsPresent = PREFIX0;
   if (++pos >= len)
     return DASM_INVALID_INSTRUCTION;
 
   if (!isPrefix(byte[pos]))
     return 1;
   Instruction->Prefix.p1 = byte[pos];
-  Instruction->Fields |= PREFIX1;
+  Instruction->FieldsPresent |= PREFIX1;
   if (++pos >= len)
     return DASM_INVALID_INSTRUCTION;
 
   if (!isPrefix(byte[pos]))
     return 2;
   Instruction->Prefix.p2 = byte[pos];
-  Instruction->Fields |= PREFIX2;
+  Instruction->FieldsPresent |= PREFIX2;
   if (++pos >= len)
     return DASM_INVALID_INSTRUCTION;
 
   if (!isPrefix(byte[pos]))
     return 3;
   Instruction->Prefix.p3 = byte[pos];
-  Instruction->Fields |= PREFIX3;
+  Instruction->FieldsPresent |= PREFIX3;
   if (++pos >= len)
     return DASM_INVALID_INSTRUCTION;
 
@@ -353,6 +353,7 @@ typedef struct _ModRM {
   uint8_t RM;
 } ModRM;
 
+// TODO: consider 16, 32 and 64 modes
 uint8_t dasm(const uint8_t *CodeBytes, size_t CodeSize, INSTRUCTION *Instruction) {
   // TODO: add and respect a maxlen
   // TODO: inform number of decoded bytes on return?
@@ -410,8 +411,8 @@ uint8_t dasm(const uint8_t *CodeBytes, size_t CodeSize, INSTRUCTION *Instruction
 
       Instruction->ModRM.modr_m = CodeBytes[InstructionSize++];
       ModRM modrm = { 0 };
-      //        Bit 7654 3210
-      //            8421 8421
+      //    bit pos 7654 3210
+      //    weight  8421 8421
       //            1111 1111
       // Mod:       1100 0000 = C0; >> 6 & 3
       // RegOPCode: 0011 1000 = 38; >> 3 & 7

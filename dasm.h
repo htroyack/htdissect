@@ -17,55 +17,55 @@
 *        +-- Prefixes (optional)                                               *
 *                                                                              *
 *******************************************************************************/
-  typedef struct _prefix {
-    uint8_t p0;
-    uint8_t p1;
-    uint8_t p2;
-    uint8_t p3;
-  } prefix;
+typedef struct _prefix {
+  uint8_t p0;
+  uint8_t p1;
+  uint8_t p2;
+  uint8_t p3;
+} prefix;
 
-  typedef struct _opcode {
-    uint8_t o0;
-    uint8_t o1;
-  } opcode;
+typedef struct _opcode {
+  uint8_t o0;
+  uint8_t o1;
+} opcode;
 
-  typedef union _modr_m {
-    uint8_t modr_m;
-  } modr_m;
+typedef union _modr_m {
+  uint8_t modr_m;
+} modr_m;
 
-  typedef struct _sib {
-    uint8_t sib;
-  } sib;
+typedef struct _sib {
+  uint8_t sib;
+} sib;
 
-  typedef struct _displacement {
-    union {
-      uint8_t db; // displacement byte: 1 byte displacement
-      union {     // 4 byte displacement
-        uint32_t dd; // displacement dword: 4 byte displacement
-        struct {
-          uint8_t dd0;
-          uint8_t dd1;
-          uint8_t dd2;
-          uint8_t dd3;
-        } displacementbytes;
-      };
+typedef struct _displacement {
+  union {
+    uint8_t db; // displacement byte: 1 byte displacement
+    union {     // 4 byte displacement
+      uint32_t dd; // displacement dword: 4 byte displacement
+      struct {
+        uint8_t dd0;
+        uint8_t dd1;
+        uint8_t dd2;
+        uint8_t dd3;
+      } displacementbytes;
     };
-  } displacement;
+  };
+} displacement;
 
-  typedef struct _immediate {
-    union {
-      uint8_t ib; // immediate byte: 1 byte immediate
-      union {     // 4 byte immediate
-        uint32_t id; // immediate dword: 4 byte immediate
-        struct{
-          uint8_t i0;
-          uint8_t i1;
-          uint8_t i2;
-          uint8_t i3;
-        } immediatedword;
-      };
+typedef struct _immediate {
+  union {
+    uint8_t ib; // immediate byte: 1 byte immediate
+    union {     // 4 byte immediate
+      uint32_t id; // immediate dword: 4 byte immediate
+      struct{
+        uint8_t i0;
+        uint8_t i1;
+        uint8_t i2;
+        uint8_t i3;
+      } immediatedword;
     };
-  } immediate;
+  };
+} immediate;
 
 typedef struct _INSTRUCTION {
   prefix Prefix;
@@ -73,7 +73,8 @@ typedef struct _INSTRUCTION {
   modr_m ModRM;
   sib SIB;
   displacement Displacement;
-  uint8_t Fields;
+  uint8_t FieldsWanted;
+  uint8_t FieldsPresent;
   const char *Name;
 } INSTRUCTION;
 
@@ -100,6 +101,15 @@ typedef struct _INSTRUCTION {
 #define PREFIX1 (uint8_t)0xC000 // 1 << E + ... 0x8000 + 0x4000
 #define PREFIX2 (uint8_t)0xE000 // 1 << D + ... 0x8000 + 0x4000 + 0x2000
 #define PREFIX3 (uint8_t)0xF000 // 1 << C + ... 0x8000 + 0x4000 + 0x2000 + 0x1000
+
+// 3.1.1.1 Opcode Column in the Instruction Summary Table
+/*cb, cw, cd, cp, co, ct — A 1-byte (cb), 2-byte (cw), 4-byte (cd), 6-byte (cp),
+ 8-byte (co) or 10-byte (ct) value following the opcode. This value is used to
+ specify a code offset and possibly a new value for the code segment register.*/
+#define CB 0x01
+/* /r — Indicates that the ModR/M byte of the instruction contains a register
+operand and an r/m operand.*/
+#define WANT_SLASH_R 0x02
 
 typedef struct _OPCODE {
   uint8_t Opcode;

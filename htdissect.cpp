@@ -728,6 +728,7 @@ int main(int argc, char *argv[])
   }
 
   // TODO: use memory mapped files
+  // TODO: maybe read all file at once and close it then work in memory?
   FILE* InFile = fopen(argv[1], "rb");
   if (!InFile) {
     ceprintf(CERROR, "Unable to open file '%s'\n", argv[1]);
