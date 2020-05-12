@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="scratch.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="htdissect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
