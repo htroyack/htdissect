@@ -1,0 +1,113 @@
+================================================================================
+                More like a NOTES file than a To-do list file :D
+================================================================================
+
+Notes taken (mostly) while reading the book:
+  Intel 64 and IA-32 Architectures
+  Software Developer's Manual
+  Volume 2 (2A, 2B, 2C & 2D):
+  Instruction Set Reference, A-Z
+
+--------------------------------------------------------------------------------
+CHAPTER 2
+INSTRUCTION FORMAT
+--------------------------------------------------------------------------------
+"Instructions consist of optional instruction prefixes (in any order), primary
+opcode bytes (up to three bytes), an addressing-form specifier (if required)
+consisting of the ModR/M byte and sometimes the SIB (Scale-Index-Base) byte, a
+displacement (if required), and an immediate data field (if required)."
+"If a REX prefix is used when it has no meaning, it is ignored."
+[ ! ] "Only one REX prefix is allowed per instruction."
+[ ! ] "If used, the REX prefix byte must immediately precede the opcode
+byte or the escape opcode byte (0FH)."
+[ ! ] "The REX prefix is optional, but if used must be immediately before the
+opcode;"
+"When a REX prefix is used in conjunction with an instruction containing a
+mandatory prefix, the mandatory prefix must come before the REX so the REX
+prefix can be immediately preceding the opcode or the escape byte."
+"Other placements are ignored."
+"The instruction-size limit of 15 bytes still applies to instructions with a REX
+prefix."
+"The maximum length of an Intel 64 and IA-32 instruction remains 15 bytes."
+
+--------------------------------------------------------------------------------
+2.1 INSTRUCTION FORMAT FOR PROTECTED MODE, REAL-ADDRESS MODE,
+AND VIRTUAL-8086 MODE
+--------------------------------------------------------------------------------
+Instruction (1-15 bytes):
+  Instruction Prefixes
+    1 byte, 0 to 4 times
+  Opcode
+    1-3 bytes
+  ModR/M
+    1 byte, 0 to 1 time
+  SIB
+    1 byte, 0-1 time
+  Displacement
+    0, 1, 2 or 4 bytes[*]
+  Immediate
+    0, 1, 2 or 4 byte[*]
+
+ModR/M byte:
+  Mod: 2 bits
+  Reg/Opcode: 3 bits
+  R/M: 3 bits
+
+SIB byte:
+  Scale: 2 bits
+  Index: 3 bits
+  Base: 3 bits
+
+[*] Some rare instructions can take an 8B immediate or 8B displacement.
+  - referred to as "io" in the "Opcode" column on INSTRUCTION REFERENCE PAGES
+  - referred to as "imm64" in the "Description" column
+  - (listed in "[Known cases of unusual aberrations]" below)
+
+                    ****************************************
+                                   NOTE THAT
+ THE ModR/M AND SIB BYTES HAVE SIMILAR STRUCTURE, ARE BOTH OPTIONAL AND APPEAR
+    CONSECTUTIVE TO EACH OTHER. CODE TO HANDLE THEM COULD POSSIBLY BE SHARED
+                    ****************************************
+
+DECODING INSTRUCTIONS
+  Prefixes can be tested by checking a byte agains all possible prefix values.
+  Opcode byte count is an [instruction property]. (?or is it?)
+
+[Instruction properties]:
+  Opcode byte count; // maybe this can be ommited if we test all 1byte values?
+    (possible values: 1-3; 2 bits of information)
+  ModR/M required?
+    (true/false: 1 bit)
+  SIB required?
+    (true/false: 1 bit)
+  Displacement bytes
+    (possible values: 0, 1, 2 or 4; 2 bits of information)
+  Immediate bytes
+    (possible values: 0, 1, 2 or 4; 2 bits of information)
+    imm8|imm16|imm32 | ?"imm64"?[*] (all are signed numbers)
+    ib, iw, id, ?"io"*?[*]
+
+----------------------------------------
+[*] [Known cases of unusual aberrations]
+----------------------------------------
+Known cases of unusual aberrations:
+  Immediate:
+    "io"
+      MOV-Move    REX.W + B8+ rd io    MOV r64, imm64    Move imm64 to r64.
+    "imm64"
+      MOV-Move    REX.W + B8+ rd io    MOV r64, imm64    Move imm64 to r64.
+      CMP - Compare Two Operands
+        immediate32 with qwordregister
+          0100 100B 1000 0001 : 11 111 qwordreg : imm64
+        immediate32 with memory64
+          0100 1RXB 1000 0001 : mod 111 r/m : imm64
+      MOV - Move Data
+        immediate64 to qwordregister (alternate encoding)
+          0100 100B 1011 1000 reg : imm64
+      OR - Logical Inclusive OR
+        immediate64 to RAX
+          0100 1000 0000 1101 : imm64
+      PUSH - Push Operand onto the Stack
+        immediate64
+          0110 1000 : imm64
+----------------------------------------
