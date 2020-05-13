@@ -150,9 +150,6 @@
     <ClCompile Include="htdissect.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="scratch.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="dasm.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

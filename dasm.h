@@ -73,7 +73,7 @@ typedef struct _INSTRUCTION {
   modr_m ModRM;
   sib SIB;
   displacement Displacement;
-  uint8_t FieldsWanted;
+  uint8_t FieldsNeeded;
   uint8_t FieldsPresent;
   const char *Name;
 } INSTRUCTION;
@@ -114,6 +114,7 @@ operand and an r/m operand.*/
 typedef struct _OPCODE {
   uint8_t Opcode;
   const char* Instruction;
+  uint8_t FieldsNeeded;
 } OPCODE;
 
 #define DASM_INVALID_INSTRUCTION 0xFF

@@ -602,7 +602,7 @@ void DumpDisassembly(uint8_t* CodeBytes, size_t CodeSize,
     cprintf(CHEXOFFSET, "%p: ", StartAddress+(CodeBytes- InitialCodeBytes)-InstructionSize);
     for (uint8_t *bytes = CodeBytes- InstructionSize; bytes < CodeBytes; bytes++)
       cprintf(CHEXBYTE, "%02X ", *bytes);
-    for (int i = 6 - InstructionSize; i > 0; i--)
+    for (size_t i = 6 - InstructionSize; i > 0; i--)
       printf("   ");
     cprintf(CHEXINST, "%s\n", Instruction.Name);
   }
