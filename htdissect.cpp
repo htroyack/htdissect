@@ -400,8 +400,8 @@ void PrintWordS(const char* Prefix, const char* Title, const char* Suffix,
 
 #define PrintDword(Prefix, Title, Word, PrintOptions, AbsolutePos) \
   PrintDwordS(Prefix, Title, NULL, Word, PrintOptions, AbsolutePos)
-void PrintDwordS(const char* Prefix, const char* Title, const char *Suffix, uint32_t Dword,
-  uint8_t PrintOptions, size_t* AbsolutePos) {
+void PrintDwordS(const char* Prefix, const char* Title, const char *Suffix,
+  uint32_t Dword, uint8_t PrintOptions, size_t* AbsolutePos) {
   cprintf(CVALUE, "%s%s: ", Prefix, Title);
 
   if (PrintOptions & PRINT_OPT_DEC)
@@ -510,10 +510,12 @@ void DumpImageFileHeader(PIMAGE_FILE_HEADER pImageFileHeader,
   time_t ltime = pImageFileHeader->TimeDateStamp;
   char TimeDateStampStr[TIMESTAMP_STR_SIZE];
   _ctime64_s(TimeDateStampStr, TIMESTAMP_STR_SIZE, &ltime);
-  PrintDwordS(TAB_CHAR, "TimeDateStamp", TimeDateStampStr, pImageFileHeader->TimeDateStamp,
+  PrintDwordS(TAB_CHAR, "TimeDateStamp", TimeDateStampStr,
+    pImageFileHeader->TimeDateStamp,
     PRINT_OPT_DEC|PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  PrintDword(TAB_CHAR, "PointerToSymbolTable", pImageFileHeader->PointerToSymbolTable,
+  PrintDword(TAB_CHAR, "PointerToSymbolTable",
+    pImageFileHeader->PointerToSymbolTable,
     PRINT_OPT_DEC|PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
 
   PrintDword(TAB_CHAR, "NumberOfSymbols", pImageFileHeader->NumberOfSymbols,
@@ -589,22 +591,27 @@ void DumpImageSectionHeader(PIMAGE_SECTION_HEADER pImageSectionHeader,
 }
 
 void DumpDisassembly(uint8_t* CodeBytes, size_t CodeSize,
-  size_t StartAddress) {
+  uint8_t* StartAddr) {
   // TODO: Disassemble x86-64/x64
-  // TODO: Check to avoid reading past buffer
-  size_t InitialCodeBytes = (size_t)CodeBytes;
   size_t InstructionSize = 0;
+  uint8_t* InstOffset = StartAddr;
 
-  INSTRUCTION Instruction;
-  while (DASM_INVALID_INSTRUCTION != (InstructionSize = dasm(CodeBytes, CodeSize, &Instruction))) {
+  INSTRUCTION Instruction = { 0 };
+  while (DASM_INVALID_INSTRUCTION != 
+    (InstructionSize = dasm(CodeBytes, CodeSize, &Instruction, InstOffset))) {
     CodeSize -= InstructionSize;
     CodeBytes += InstructionSize;
-    cprintf(CHEXOFFSET, "%p: ", StartAddress+(CodeBytes- InitialCodeBytes)-InstructionSize);
-    for (uint8_t *bytes = CodeBytes- InstructionSize; bytes < CodeBytes; bytes++)
+    cprintf(CHEXOFFSET, "%p: ", InstOffset);
+    for (uint8_t *bytes = CodeBytes- InstructionSize;
+      bytes < CodeBytes; bytes++)
       cprintf(CHEXBYTE, "%02X ", *bytes);
     for (size_t i = 6 - InstructionSize; i > 0; i--)
       printf("   ");
-    cprintf(CHEXINST, "%s\n", Instruction.Name);
+    cprintf(CHEXINST, "%s\n", Instruction.DecodedText);
+
+    InstOffset += InstructionSize;
+
+    memset(&Instruction, 0, sizeof(INSTRUCTION));
   }
 }
 
@@ -641,9 +648,8 @@ void DumpImageSectionRawData(FILE* ObjFile,
   if (ImageSectionHeader->Characteristics | IMAGE_SCN_CNT_CODE &&
     ImageSectionHeader->Characteristics | IMAGE_SCN_MEM_EXECUTE) {
     DumpDisassembly((uint8_t*)RawData, ImageSectionHeader->SizeOfRawData,
-      ImageSectionHeader->PointerToRawData);
+      (uint8_t*)ImageSectionHeader->PointerToRawData);
   }
-
 
   free(RawData);
 }

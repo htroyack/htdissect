@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "dasm.h"
 
 // Vide: "Intel® 64 and IA - 32 Architectures Software Developer Manuals"
@@ -144,7 +145,7 @@ OPCODE OpCodes[0x100] = {
   {0x86, "XCHG"},
   {0x87, "XCHG"},
   {0x88, "MOV"},      // MOV
-  {0x89, "MOV"},      // MOV
+  {0x89, "MOV", DASM_REQ_MODRM},      // MOV
   {0x8A, "MOV"},      // MOV
   {0x8B, "MOV"},      // MOV
   {0x8C, "MOV"},
@@ -191,14 +192,14 @@ OPCODE OpCodes[0x100] = {
   {0xB5, "MOV CH"},   // MOV
   {0xB6, "MOV DH"},   // MOV
   {0xB7, "MOV BH"},   // MOV
-  {0xB8, "MOV EAX"},  // MOV
-  {0xB9, "MOV ECX"},  // MOV
-  {0xBA, "MOV EDX"},  // MOV
-  {0xBB, "MOV EBX"},  // MOV
-  {0xBC, "MOV ESP"},  // MOV
-  {0xBD, "MOV EBP"},  // MOV
-  {0xBE, "MOV ESI"},  // MOV
-  {0xBF, "MOV EDI"},  // MOV
+  {0xB8, "MOV EAX,", DASM_REQ_IMM32},  // MOV
+  {0xB9, "MOV ECX,", DASM_REQ_IMM32},  // MOV
+  {0xBA, "MOV EDX,", DASM_REQ_IMM32},  // MOV
+  {0xBB, "MOV EBX,", DASM_REQ_IMM32},  // MOV
+  {0xBC, "MOV ESP,", DASM_REQ_IMM32},  // MOV
+  {0xBD, "MOV EBP,", DASM_REQ_IMM32},  // MOV
+  {0xBE, "MOV ESI,", DASM_REQ_IMM32},  // MOV
+  {0xBF, "MOV EDI,", DASM_REQ_IMM32},  // MOV
   {0xC0, NULL},       // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
   {0xC1, NULL},       // TODO: WTF? [Shift Grp 2 1A] VIDE Section A.4 ?????
   {0xC2, "RET"},
@@ -233,28 +234,28 @@ OPCODE OpCodes[0x100] = {
   {0xDF, "???"},      // TODO: ESC (Escape to coprocessor instruction set)
   {0xE0, "LOOPNE"},
   {0xE1, "LOOPE"},
-  {0xE2, "LOOP", DASM_FIELD_CB},
-  {0xE3, "JECXZ"},
+  {0xE2, "LOOP", DASM_REQ_CB},
+  {0xE3, "JECXZ", DASM_REQ_CB},
   {0xE4, "IN AL"},
   {0xE5, "IN EAX"},
   {0xE6, "OUT"},
   {0xE7, "OUT"},
-  {0xE8, "CALL"},
+  {0xE8, "CALL", DASM_REQ_CD},
   {0xE9, "JMP"},
   {0xEA, "JMP"},
   {0xEB, "JMP"},
   {0xEC, "IN AL,DX"},
   {0xED, "IN EAX,DX"},
-  {0xEE, "OUT DX, AL"},
-  {0xEF, "OUT DX, EAX"},
+  {0xEE, "OUT DX,AL"},
+  {0xEF, "OUT DX,EAX"},
   {0xF0, NULL},       // Instruction Prefixes Group 1 [LOCK (Prefix)]
   {0xF1, "ICEBP"},    // TODO: UNDOCUMENTED. A.k.a. "INT1"
   {0xF2, NULL},   // Instruction Prefixes Group 1 [REPNE XACQUIRE (Prefix)]
   {0xF3, NULL},   // Instruction Prefixes Group 1 [REP/REPE XRELEASE (Prefix)]
   {0xF4, "HLT"},
   {0xF5, "CMC"},
-  {0xF6, NULL, DASM_FIELD_MODRM}, //TODO: [Unary Grp 3 1A] VIDE Section A.4
-  {0xF7, NULL, DASM_FIELD_MODRM}, //TODO: [Unary Grp 3 1A] VIDE Section A.4
+  {0xF6, NULL, DASM_MODRM_EXT, 3}, //TODO: [Unary Grp 3 1A] Section A.4
+  {0xF7, NULL, DASM_MODRM_EXT, 3}, //TODO: [Unary Grp 3 1A] Section A.4
   {0xF8, "CLC"},
   {0xF9, "STC"},
   {0xFA, "CLI"},
@@ -265,15 +266,14 @@ OPCODE OpCodes[0x100] = {
   {0xFF, "???"}  // TODO: WTF? [INC/DEC Grp 5 1A] VIDE Section A.4 ?????
 };
 
-OpcodeExt Group3[8] = {
-  { 0, "TEST" },
-  { 1, NULL },
-  { 2, "NOT" },
-  { 3, "NEG" },
-  { 4, "MUL" },
-  { 5, "IMUL" },
-  { 6, "DIV" },
-  { 7, "IDIV" },
+OpcodeExt ExtGroup3[8] = {
+  {0, "TEST"},     {1, NULL},   {2, "NOT"}, {3, "NEG"},
+  {4, "MUL EAX,"}, {5, "IMUL"}, {6, "DIV"}, {7, "IDIV"},
+};
+
+const char* ModrRMRegOperand[8] = {
+  "EAX", "ECX", "EDX", "EBX",
+  "ESP", "EBP", "ESI", "EDI"
 };
 
 int IsPrefix(const uint8_t byte) {
@@ -339,42 +339,49 @@ uint8_t testPrefix (const uint8_t* byte, size_t len, INSTRUCTION* Instruction) {
   return 4;
 }
 
-uint8_t ReadLegacyPrefixes(const uint8_t* CodeBytes, size_t CodeSize, INSTRUCTION* Instruction) {
+uint8_t ReadLegacyPrefixes(const uint8_t* CodeBytes, size_t CodeSize,
+  INSTRUCTION* Instruction) {
   Instruction->PrefixBytes = 0;
 
-  for (int i = 0; i < CodeSize && i < DASM_MAX_PREFIXES; i++) {
+  for (unsigned i = 0; i < CodeSize && i < DASM_MAX_PREFIXES; i++) {
     if (!IsPrefix(CodeBytes[i]))
       break;
 
     Instruction->Prefix[i] = CodeBytes[i];
     ++Instruction->PrefixBytes;
   }
+  Instruction->Size = Instruction->PrefixBytes;
 
   return Instruction->PrefixBytes;
 }
 
-uint8_t ReadREXPrefix(const uint8_t* CodeBytes, size_t CodeSize, INSTRUCTION* Instruction) {
+uint8_t ReadREXPrefix(const uint8_t* CodeBytes, size_t CodeSize,
+  INSTRUCTION* Instruction) {
   // TODO: Handle REX Prefix
   return 0;
 }
 
-uint8_t ReadOpcode(const uint8_t* CodeBytes, size_t CodeSize, INSTRUCTION* Instruction) {
+uint8_t ReadOpcode(const uint8_t* CodeBytes, size_t CodeSize,
+  INSTRUCTION* Instruction) {
   if (!CodeSize)
     return DASM_INVALID_INSTRUCTION;
 
   // TODO: Handle multi-byte instructions
   Instruction->Opcode[0] = *CodeBytes;
-  Instruction->FieldsRequired |= OpCodes[0].FieldsRequired;
+  Instruction->Properties |= OpCodes[*CodeBytes].Properties;
+  Instruction->OpcodeExtGrp = OpCodes[*CodeBytes].OpcodeExtGrp;
+  Instruction->Size += 1;
 
   return 1;
 }
 
-uint8_t ReadModRM(const uint8_t* CodeBytes, size_t CodeSize, INSTRUCTION* Instruction) {
-  if (!(Instruction->FieldsRequired & DASM_FIELD_MODRM)) {
+uint8_t ReadModRM(const uint8_t* CodeBytes, size_t CodeSize,
+  INSTRUCTION* Instruction) {
+  if (!(Instruction->Properties & DASM_REQ_MODRM)) {
     return 0;
   }
 
-  if (!CodeBytes)
+  if (!CodeSize)
     return DASM_INVALID_INSTRUCTION;
 
   Instruction->ModRM.ModRM = *CodeBytes;
@@ -382,26 +389,109 @@ uint8_t ReadModRM(const uint8_t* CodeBytes, size_t CodeSize, INSTRUCTION* Instru
   Instruction->ModRM.RegOPCode = MODRM_REG_OPCODE(Instruction->ModRM.ModRM);
   Instruction->ModRM.RM = MODRM_RM(Instruction->ModRM.ModRM);
 
-  Instruction->FieldsPresent |= DASM_FIELD_MODRM;
+  Instruction->FieldsPresent |= DASM_REQ_MODRM;
+  Instruction->Size += 1;
 
   return 1;
 }
 
-uint8_t ReadSIB(const uint8_t* CodeBytes, size_t CodeSize, INSTRUCTION* Instruction) {
-  return DASM_INVALID_INSTRUCTION;
+uint8_t ReadSIB(const uint8_t* CodeBytes, size_t CodeSize,
+  INSTRUCTION* Instruction) {
+  return 0;
 }
 
-uint8_t ReadDisplacement(const uint8_t* CodeBytes, size_t CodeSize, INSTRUCTION* Instruction) {
-  return DASM_INVALID_INSTRUCTION;
+uint8_t ReadDisplacement(const uint8_t* CodeBytes, size_t CodeSize,
+  INSTRUCTION* Instruction) {
+  return 0;
 }
 
-uint8_t ReadImmediate(const uint8_t* CodeBytes, size_t CodeSize, INSTRUCTION* Instruction) {
-  return DASM_INVALID_INSTRUCTION;
+uint8_t ReadImmediate(const uint8_t* CodeBytes, size_t CodeSize,
+  INSTRUCTION* Instruction) {
+  /* cb, cw, cd that appears on Opcode columns of instruction tables are used
+  as rel8, rel16 and rel32 on Instruction column for jump and loop instructions
+  as target operands, giving relative offsets. I'll fetch them as Immediate */
+  switch (Instruction->Properties & DASM_REQ_IMMEDIATE) {
+  case DASM_REQ_IMM8:
+    if (CodeSize < 1) return DASM_INVALID_INSTRUCTION;
+    Instruction->Immediate = *CodeBytes;
+    Instruction->Size += 1;
+    return 1;
+    break;
+  case DASM_REQ_IMM32:
+    if (CodeSize < 4) return DASM_INVALID_INSTRUCTION;
+    Instruction->Immediate = *(uint32_t*)CodeBytes;
+    // Instruction->Immediate[0] = *CodeBytes++;
+    // Instruction->Immediate[1] = *CodeBytes++;
+    // Instruction->Immediate[2] = *CodeBytes++;
+    // Instruction->Immediate[3] = *CodeBytes++;
+    Instruction->Size += 4;
+    return 4;
+  default:
+    return 0;
+  }
+}
+
+uint8_t DecodeInstructionText(INSTRUCTION* Instruction, uint8_t* StartAddr) {
+  Instruction->Name = OpCodes[Instruction->Opcode[0]].Instruction;
+
+  if (Instruction->OpcodeExtGrp) {
+    OpcodeExt* OpcodeExtGroup = NULL;
+    if (Instruction->OpcodeExtGrp == 3)
+      OpcodeExtGroup = ExtGroup3;
+
+    if (OpcodeExtGroup) {
+      uint8_t RegOPCode = Instruction->ModRM.RegOPCode;
+      Instruction->Name = OpcodeExtGroup[RegOPCode].Instruction;
+      if (!Instruction->Name)
+        return DASM_INVALID_INSTRUCTION;
+    }
+  }
+
+  if (Instruction->Properties & DASM_REQ_MODRM) {
+    const char *ModRMReg = ModrRMRegOperand[Instruction->ModRM.RegOPCode];
+    const char *ModRMRM = NULL;
+    switch (Instruction->ModRM.Mod)
+    {
+    case 3:
+      ModRMRM = ModrRMRegOperand[Instruction->ModRM.RM];
+      break;
+    }
+    // Here we use only ModR/M.RM, since ModRM/RegOpcode is used as extension
+    if (DASM_MODRM_EXT == (Instruction->Properties & DASM_MODRM_EXT))
+      snprintf(Instruction->DecodedText, DASM_MAX_INST_TXT, "%s %s",
+        Instruction->Name, ModRMRM);
+    else
+      snprintf(Instruction->DecodedText, DASM_MAX_INST_TXT, "%s %s, %s",
+        Instruction->Name,
+        ModRMRM, ModRMReg);
+  }
+  else if (Instruction->Properties & DASM_REQ_CODE_OFFSET) {
+    // TODO: consider rel16, rel32, rel64
+    // jump or loop to rel8
+    uint8_t* Target = (StartAddr + Instruction->Size) +
+      (int8_t)Instruction->Immediate;
+    snprintf(Instruction->DecodedText, DASM_MAX_INST_TXT, "%s %p",
+      Instruction->Name,
+      Target);
+  }
+  else if (Instruction->Properties & DASM_REQ_IMMEDIATE) {
+    /* TODO: Consider printing signed/unsigned properly (as decimal?)
+             "The opcode determines if the operand is a signed value." */
+    snprintf(Instruction->DecodedText, DASM_MAX_INST_TXT, "%s %02X",
+      Instruction->Name,
+      Instruction->Immediate);
+  }
+  else {
+    snprintf(Instruction->DecodedText, DASM_MAX_INST_TXT, "%s",
+      Instruction->Name);
+  }
+
+  return 0;
 }
 
 /* Returns the number of instruction bytes or DASM_INVALID_INSTRUCTION. */
-uint8_t dasm2(const uint8_t* CodeBytes, size_t CodeSize,
-  INSTRUCTION* Instruction) {
+uint8_t dasm(const uint8_t* CodeBytes, size_t CodeSize,
+  INSTRUCTION* Instruction, uint8_t* StartAddr) {
   uint8_t InstructionSize = 0;
 
   if (!CodeSize)
@@ -433,14 +523,15 @@ uint8_t dasm2(const uint8_t* CodeBytes, size_t CodeSize,
     InstructionSize += ReadImmediate(CodeBytes + InstructionSize,
       CodeSize - InstructionSize, Instruction);
 
-  if (Instruction->FieldsRequired != Instruction->FieldsPresent)
+  if (DASM_INVALID_INSTRUCTION == DecodeInstructionText(Instruction, StartAddr))
     return DASM_INVALID_INSTRUCTION;
 
   return InstructionSize;
 }
 
 // TODO: consider 16, 32 and 64 modes
-uint8_t dasm(const uint8_t *CodeBytes, size_t CodeSize, INSTRUCTION *Instruction) {
+uint8_t dasm_old(const uint8_t *CodeBytes, size_t CodeSize,
+  INSTRUCTION *Instruction) {
   // TODO: add and respect a maxlen
   // TODO: inform number of decoded bytes on return?
   //       (its a count of bits in InstructionFields)
@@ -486,7 +577,7 @@ uint8_t dasm(const uint8_t *CodeBytes, size_t CodeSize, INSTRUCTION *Instruction
       // Unary Grp 3
     case 0xF6:
     case 0xF7:
-      OpcodeExtGroup = Group3;
+      OpcodeExtGroup = ExtGroup3;
       break;
     }
 
