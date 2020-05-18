@@ -21,6 +21,7 @@
 #define DASM_REQ_IMM32           (DASM_REQ_IMM8|DASM_REQ_IMM16)
 #define DASM_REQ_IMMEDIATE       (DASM_REQ_IMM8|DASM_REQ_IMM16)
 // Requires ModR/M; Reg fields provides opcode ext
+// Bits 5, 4, and 3 of ModR/M byte used as an opcode extension
 #define DASM_MODRM_EXT           (0x80|DASM_REQ_MODRM)
 
 // 3.1.1.1 Opcode Column in the Instruction Summary Table
@@ -54,10 +55,10 @@
 // Prefix Group 4
 #define DASM_PREFIX_ADDRESS_SIZE_OVERRIDE 0x67
 
-#define PREFIX0 (uint8_t)0x8000 // 1 << F
-#define PREFIX1 (uint8_t)0xC000 // 1 << E + ... 0x8000+0x4000
-#define PREFIX2 (uint8_t)0xE000 // 1 << D + ... 0x8000+0x4000+0x2000
-#define PREFIX3 (uint8_t)0xF000 // 1 << C + ... 0x8000+0x4000+0x2000+0x1000
+#define PREFIX0 (uint16_t)0x8000 // 1 << F
+#define PREFIX1 (uint16_t)0xC000 // 1 << E + ... 0x8000+0x4000
+#define PREFIX2 (uint16_t)0xE000 // 1 << D + ... 0x8000+0x4000+0x2000
+#define PREFIX3 (uint16_t)0xF000 // 1 << C + ... 0x8000+0x4000+0x2000+0x1000
 
 #define MODRM_MOD(ModRM)        (((ModRM)>>6)&3)
 #define MODRM_REG_OPCODE(ModRM) (((ModRM)>>3)&7)

@@ -295,48 +295,9 @@ int IsPrefix(const uint8_t byte) {
   // Group 4
   case DASM_PREFIX_ADDRESS_SIZE_OVERRIDE:
     return byte;
-  }
-
-  return 0;
-}
-
-uint8_t testPrefix (const uint8_t* byte, size_t len, INSTRUCTION* Instruction) {
-  // TODO: there may be not second byte in buffer to byte++
-
-  unsigned short pos = 0;
-
-  if (!len)
-    return DASM_INVALID_INSTRUCTION;
-
-  if (!IsPrefix(byte[pos]))
+  default:
     return 0;
-  Instruction->Prefix[0] = byte[pos];
-  Instruction->FieldsPresent = PREFIX0;
-  if (++pos >= len)
-    return DASM_INVALID_INSTRUCTION;
-
-  if (!IsPrefix(byte[pos]))
-    return 1;
-  Instruction->Prefix[1] = byte[pos];
-  Instruction->FieldsPresent |= PREFIX1;
-  if (++pos >= len)
-    return DASM_INVALID_INSTRUCTION;
-
-  if (!IsPrefix(byte[pos]))
-    return 2;
-  Instruction->Prefix[2] = byte[pos];
-  Instruction->FieldsPresent |= PREFIX2;
-  if (++pos >= len)
-    return DASM_INVALID_INSTRUCTION;
-
-  if (!IsPrefix(byte[pos]))
-    return 3;
-  Instruction->Prefix[3] = byte[pos];
-  Instruction->FieldsPresent |= PREFIX3;
-  if (++pos >= len)
-    return DASM_INVALID_INSTRUCTION;
-
-  return 4;
+  }
 }
 
 uint8_t ReadLegacyPrefixes(const uint8_t* CodeBytes, size_t CodeSize,
@@ -358,13 +319,16 @@ uint8_t ReadLegacyPrefixes(const uint8_t* CodeBytes, size_t CodeSize,
 uint8_t ReadREXPrefix(const uint8_t* CodeBytes, size_t CodeSize,
   INSTRUCTION* Instruction) {
   // TODO: Handle REX Prefix
+  Instruction = Instruction;
+  CodeSize = CodeSize;
+  CodeBytes = CodeBytes;
   return 0;
 }
 
 uint8_t ReadOpcode(const uint8_t* CodeBytes, size_t CodeSize,
   INSTRUCTION* Instruction) {
   if (!CodeSize)
-    return DASM_INVALID_INSTRUCTION;
+    return Instruction->Size = DASM_INVALID_INSTRUCTION;
 
   // TODO: Handle multi-byte instructions
   Instruction->Opcode[0] = *CodeBytes;
@@ -382,7 +346,7 @@ uint8_t ReadModRM(const uint8_t* CodeBytes, size_t CodeSize,
   }
 
   if (!CodeSize)
-    return DASM_INVALID_INSTRUCTION;
+    return Instruction->Size = DASM_INVALID_INSTRUCTION;
 
   Instruction->ModRM.ModRM = *CodeBytes;
   Instruction->ModRM.Mod = MODRM_MOD(Instruction->ModRM.ModRM);
@@ -397,11 +361,17 @@ uint8_t ReadModRM(const uint8_t* CodeBytes, size_t CodeSize,
 
 uint8_t ReadSIB(const uint8_t* CodeBytes, size_t CodeSize,
   INSTRUCTION* Instruction) {
+  Instruction = Instruction;
+  CodeSize = CodeSize;
+  CodeBytes = CodeBytes;
   return 0;
 }
 
 uint8_t ReadDisplacement(const uint8_t* CodeBytes, size_t CodeSize,
   INSTRUCTION* Instruction) {
+  Instruction = Instruction;
+  CodeSize = CodeSize;
+  CodeBytes = CodeBytes;
   return 0;
 }
 
@@ -412,13 +382,13 @@ uint8_t ReadImmediate(const uint8_t* CodeBytes, size_t CodeSize,
   as target operands, giving relative offsets. I'll fetch them as Immediate */
   switch (Instruction->Properties & DASM_REQ_IMMEDIATE) {
   case DASM_REQ_IMM8:
-    if (CodeSize < 1) return DASM_INVALID_INSTRUCTION;
+    if (CodeSize < 1) return Instruction->Size = DASM_INVALID_INSTRUCTION;
     Instruction->Immediate = *CodeBytes;
     Instruction->Size += 1;
     return 1;
     break;
   case DASM_REQ_IMM32:
-    if (CodeSize < 4) return DASM_INVALID_INSTRUCTION;
+    if (CodeSize < 4) return Instruction->Size = DASM_INVALID_INSTRUCTION;
     Instruction->Immediate = *(uint32_t*)CodeBytes;
     // Instruction->Immediate[0] = *CodeBytes++;
     // Instruction->Immediate[1] = *CodeBytes++;
@@ -443,7 +413,7 @@ uint8_t DecodeInstructionText(INSTRUCTION* Instruction, uint8_t* StartAddr) {
       uint8_t RegOPCode = Instruction->ModRM.RegOPCode;
       Instruction->Name = OpcodeExtGroup[RegOPCode].Instruction;
       if (!Instruction->Name)
-        return DASM_INVALID_INSTRUCTION;
+        return Instruction->Size = DASM_INVALID_INSTRUCTION;
     }
   }
 
@@ -489,121 +459,41 @@ uint8_t DecodeInstructionText(INSTRUCTION* Instruction, uint8_t* StartAddr) {
   return 0;
 }
 
+// TODO: consider 16, 32 and 64 modes
 /* Returns the number of instruction bytes or DASM_INVALID_INSTRUCTION. */
 uint8_t dasm(const uint8_t* CodeBytes, size_t CodeSize,
   INSTRUCTION* Instruction, uint8_t* StartAddr) {
-  uint8_t InstructionSize = 0;
-
   if (!CodeSize)
-    return DASM_INVALID_INSTRUCTION;
+    return Instruction->Size = DASM_INVALID_INSTRUCTION;
 
-  InstructionSize = ReadLegacyPrefixes(CodeBytes, CodeSize, Instruction);
+  ReadLegacyPrefixes(CodeBytes, CodeSize, Instruction);
 
-  if (InstructionSize != DASM_INVALID_INSTRUCTION)
-    InstructionSize += ReadREXPrefix(CodeBytes + InstructionSize,
-      CodeSize - InstructionSize, Instruction);
+  if (Instruction->Size != DASM_INVALID_INSTRUCTION)
+    ReadREXPrefix(CodeBytes + Instruction->Size,
+      CodeSize - Instruction->Size, Instruction);
 
-  if (InstructionSize != DASM_INVALID_INSTRUCTION)
-    InstructionSize += ReadOpcode(CodeBytes + InstructionSize,
-      CodeSize - InstructionSize, Instruction);
+  if (Instruction->Size != DASM_INVALID_INSTRUCTION)
+    ReadOpcode(CodeBytes + Instruction->Size,
+      CodeSize - Instruction->Size, Instruction);
 
-  if (InstructionSize != DASM_INVALID_INSTRUCTION)
-    InstructionSize += ReadModRM(CodeBytes + InstructionSize,
-      CodeSize - InstructionSize, Instruction);
+  if (Instruction->Size != DASM_INVALID_INSTRUCTION)
+    ReadModRM(CodeBytes + Instruction->Size,
+      CodeSize - Instruction->Size, Instruction);
 
-  if (InstructionSize != DASM_INVALID_INSTRUCTION)
-    InstructionSize += ReadSIB(CodeBytes + InstructionSize,
-      CodeSize - InstructionSize, Instruction);
+  if (Instruction->Size != DASM_INVALID_INSTRUCTION)
+    ReadSIB(CodeBytes + Instruction->Size,
+      CodeSize - Instruction->Size, Instruction);
 
-  if (InstructionSize != DASM_INVALID_INSTRUCTION)
-    InstructionSize += ReadDisplacement(CodeBytes + InstructionSize,
-      CodeSize - InstructionSize, Instruction);
+  if (Instruction->Size != DASM_INVALID_INSTRUCTION)
+    ReadDisplacement(CodeBytes + Instruction->Size,
+      CodeSize - Instruction->Size, Instruction);
 
-  if (InstructionSize != DASM_INVALID_INSTRUCTION)
-    InstructionSize += ReadImmediate(CodeBytes + InstructionSize,
-      CodeSize - InstructionSize, Instruction);
+  if (Instruction->Size != DASM_INVALID_INSTRUCTION)
+    ReadImmediate(CodeBytes + Instruction->Size,
+      CodeSize - Instruction->Size, Instruction);
 
   if (DASM_INVALID_INSTRUCTION == DecodeInstructionText(Instruction, StartAddr))
     return DASM_INVALID_INSTRUCTION;
 
-  return InstructionSize;
-}
-
-// TODO: consider 16, 32 and 64 modes
-uint8_t dasm_old(const uint8_t *CodeBytes, size_t CodeSize,
-  INSTRUCTION *Instruction) {
-  // TODO: add and respect a maxlen
-  // TODO: inform number of decoded bytes on return?
-  //       (its a count of bits in InstructionFields)
-  uint8_t InstructionSize = testPrefix(CodeBytes, CodeSize, Instruction);
-  if (InstructionSize == DASM_INVALID_INSTRUCTION)
-    return InstructionSize;
-
-  CodeBytes += InstructionSize;
-
-  Instruction->Name = OpCodes[*CodeBytes].Instruction;
-  if (Instruction->Name)
-  {
-    ++InstructionSize;
-  }
-  else {
-    OpcodeExt *OpcodeExtGroup = NULL;
-
-    if (InstructionSize >= CodeSize)
-      return DASM_INVALID_INSTRUCTION;
-
-    // Bits 5, 4, and 3 of ModR/M byte used as an opcode extension
-    switch(CodeBytes[InstructionSize++]) {
-      // Immediate Grp 1
-    case 0x80:
-    case 0x81:
-    case 0x82:
-    case 0x83:
-      break;
-      // Shift Grp 2
-    case 0xC0:
-    case 0xC1:
-      break;
-      // Grp 11
-    case 0xC6:
-    case 0xC7:
-      break;
-      // Shift Grp 2
-    case 0xD0:
-    case 0xD1:
-    case 0xD2:
-    case 0xD3:
-      break;
-      // Unary Grp 3
-    case 0xF6:
-    case 0xF7:
-      OpcodeExtGroup = ExtGroup3;
-      break;
-    }
-
-    if (OpcodeExtGroup) {
-      // TODO: handle cases where there is no next byte
-      if (InstructionSize >= CodeSize)
-        return DASM_INVALID_INSTRUCTION;
-
-      Instruction->ModRM.ModRM = CodeBytes[InstructionSize++];
-      ModRM modrm = { 0 };
-      //    bit pos 7654 3210
-      //    weight  8421 8421
-      //            1111 1111
-      // Mod:       1100 0000 = C0; >> 6 & 3
-      // RegOPCode: 0011 1000 = 38; >> 3 & 7
-      // RM:        0000 0111 = 07; & 7
-      modrm.Mod = MODRM_MOD(Instruction->ModRM.ModRM);
-      modrm.RegOPCode = MODRM_REG_OPCODE(Instruction->ModRM.ModRM);
-      modrm.RM = MODRM_RM(Instruction->ModRM.ModRM);
-
-      Instruction->Name = OpcodeExtGroup[modrm.RegOPCode].Instruction;
-
-      if (!Instruction->Name)
-        return DASM_INVALID_INSTRUCTION;
-    }
-  }
-
-  return InstructionSize;
+  return Instruction->Size;
 }

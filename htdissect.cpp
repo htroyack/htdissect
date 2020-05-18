@@ -505,7 +505,7 @@ void DumpImageFileHeader(PIMAGE_FILE_HEADER pImageFileHeader,
   HexDump(&pImageFileHeader->Machine, 2, AbsolutePos);
 
   PrintWord(TAB_CHAR, "NumberOfSections", pImageFileHeader->NumberOfSections,
-    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
+    PRINT_OPT_DEC|PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
 
   time_t ltime = pImageFileHeader->TimeDateStamp;
   char TimeDateStampStr[TIMESTAMP_STR_SIZE];
@@ -609,6 +609,7 @@ void DumpDisassembly(uint8_t* CodeBytes, size_t CodeSize,
       printf("   ");
     cprintf(CHEXINST, "%s\n", Instruction.DecodedText);
 
+    // TODO: Verify cases where InstructionSize == 0 leading to infinite loop
     InstOffset += InstructionSize;
 
     memset(&Instruction, 0, sizeof(INSTRUCTION));
@@ -645,8 +646,8 @@ void DumpImageSectionRawData(FILE* ObjFile,
   HexDump(RawData, ImageSectionHeader->SizeOfRawData,
     &SectionRawDataFilePosition);
 
-  if (ImageSectionHeader->Characteristics | IMAGE_SCN_CNT_CODE &&
-    ImageSectionHeader->Characteristics | IMAGE_SCN_MEM_EXECUTE) {
+  if ((ImageSectionHeader->Characteristics & IMAGE_SCN_CNT_CODE) &&
+    (ImageSectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)) {
     DumpDisassembly((uint8_t*)RawData, ImageSectionHeader->SizeOfRawData,
       (uint8_t*)ImageSectionHeader->PointerToRawData);
   }
