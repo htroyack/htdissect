@@ -398,8 +398,8 @@ void PrintWordS(const char* Prefix, const char* Title, const char* Suffix,
     HexDump(&Word, 2, AbsolutePos);
 }
 
-#define PrintDword(Prefix, Title, Word, PrintOptions, AbsolutePos) \
-  PrintDwordS(Prefix, Title, NULL, Word, PrintOptions, AbsolutePos)
+#define PrintDword(Prefix, Title, Dword, PrintOptions, AbsolutePos) \
+  PrintDwordS(Prefix, Title, NULL, Dword, PrintOptions, AbsolutePos)
 void PrintDwordS(const char* Prefix, const char* Title, const char *Suffix,
   uint32_t Dword, uint8_t PrintOptions, size_t* AbsolutePos) {
   cprintf(CVALUE, "%s%s: ", Prefix, Title);
@@ -498,7 +498,7 @@ void DumpImageDosHeader(IMAGE_DOS_HEADER *ImageDosHeader,
 void DumpImageFileHeader(PIMAGE_FILE_HEADER pImageFileHeader,
   size_t *AbsolutePos)
 {
-  cprintf(CVALUE, "Machine: ");
+  cprintf(CVALUE, TAB_CHAR"Machine: ");
   printf(TAB_CHAR "%d (0x%04X)\n" TAB_CHAR "" TAB_CHAR "%s\n",
     pImageFileHeader->Machine, pImageFileHeader->Machine,
     ImageFileHeaderMachineName(pImageFileHeader->Machine));
@@ -521,16 +521,14 @@ void DumpImageFileHeader(PIMAGE_FILE_HEADER pImageFileHeader,
   PrintDword(TAB_CHAR, "NumberOfSymbols", pImageFileHeader->NumberOfSymbols,
     PRINT_OPT_DEC|PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  // TODO: replace by PrintWord
-  printf(TAB_CHAR "SizeOfOptionalHeader: %d (0x%04X)\n",
+  PrintWord(TAB_CHAR, "SizeOfOptionalHeader",
     pImageFileHeader->SizeOfOptionalHeader,
-    pImageFileHeader->SizeOfOptionalHeader);
-  HexDump(&pImageFileHeader->SizeOfOptionalHeader, 2, AbsolutePos);
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "Characteristics: %d (0x%04X):\n",
-    pImageFileHeader->Characteristics, pImageFileHeader->Characteristics);
+  cprintf(CVALUE, TAB_CHAR "Characteristics: ");
+  printf("%d (0x%04X):\n", pImageFileHeader->Characteristics,
+    pImageFileHeader->Characteristics);
   PrintImageFileHeaderCharacteristics(pImageFileHeader->Characteristics);
-  putchar('\n');
   HexDump(&pImageFileHeader->Characteristics, 2, AbsolutePos);
 }
 
@@ -540,53 +538,45 @@ void DumpImageSectionHeader(PIMAGE_SECTION_HEADER pImageSectionHeader,
   /* TODO: HANDLE "For longer names, this field contains a slash (/) that is
                    followed by an ASCII representation of a decimal number
                    that is an offset into the string table." */
-  printf(TAB_CHAR "Name: (0x%016X) \"%.8s\"\n",
+  cprintf(CVALUE, TAB_CHAR "Name: ");
+  printf("(0x%016X) \"%.8s\"\n",
     *((uint32_t*)pImageSectionHeader->Name), pImageSectionHeader->Name);
   HexDump(pImageSectionHeader->Name, 8, AbsolutePos);
 
-  printf(TAB_CHAR "VirtualSize: %d (0x%08X)\n",
-    pImageSectionHeader->Misc.VirtualSize,
-    pImageSectionHeader->Misc.VirtualSize);
-  HexDump(&pImageSectionHeader->Misc.VirtualSize, 4, AbsolutePos);
+  PrintDword(TAB_CHAR, "VirtualSize", pImageSectionHeader->Misc.VirtualSize,
+    PRINT_OPT_DEC|PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "VirtualAddress: %d (0x%08X)\n",
-    pImageSectionHeader->VirtualAddress, pImageSectionHeader->VirtualAddress);
-  HexDump(&pImageSectionHeader->VirtualAddress, 4, AbsolutePos);
+  PrintDword(TAB_CHAR, "VirtualAddress", pImageSectionHeader->VirtualAddress,
+    PRINT_OPT_DEC|PRINT_OPT_HEX| PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "SizeOfRawData: %d (0x%08X)\n",
-    pImageSectionHeader->SizeOfRawData, pImageSectionHeader->SizeOfRawData);
-  HexDump(&pImageSectionHeader->SizeOfRawData, 4, AbsolutePos);
+  PrintDword(TAB_CHAR, "SizeOfRawData", pImageSectionHeader->SizeOfRawData,
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "PointerToRawData: %d (0x%08X)\n",
+  PrintDword(TAB_CHAR, "PointerToRawData",
     pImageSectionHeader->PointerToRawData,
-    pImageSectionHeader->PointerToRawData);
-  HexDump(&pImageSectionHeader->PointerToRawData, 4, AbsolutePos);
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "PointerToRelocations: %d (0x%08X)\n",
+  PrintDword(TAB_CHAR, "PointerToRelocations",
     pImageSectionHeader->PointerToRelocations,
-    pImageSectionHeader->PointerToRelocations);
-  HexDump(&pImageSectionHeader->PointerToRelocations, 4, AbsolutePos);
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "PointerToLinenumbers: %d (0x%08X)\n",
+  PrintDword(TAB_CHAR, "PointerToLinenumbers",
     pImageSectionHeader->PointerToLinenumbers,
-    pImageSectionHeader->PointerToLinenumbers);
-  HexDump(&pImageSectionHeader->PointerToLinenumbers, 4, AbsolutePos);
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "NumberOfRelocations: %d (0x%04X)\n",
+  PrintWord(TAB_CHAR, "NumberOfRelocations",
     pImageSectionHeader->NumberOfRelocations,
-    pImageSectionHeader->NumberOfRelocations);
-  HexDump(&pImageSectionHeader->NumberOfRelocations, 2, AbsolutePos);
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "NumberOfLinenumbers: %d (0x%04X)\n",
+  PrintWord(TAB_CHAR, "NumberOfLinenumbers",
     pImageSectionHeader->NumberOfLinenumbers,
-    pImageSectionHeader->NumberOfLinenumbers);
-  HexDump(&pImageSectionHeader->NumberOfLinenumbers, 2, AbsolutePos);
+    PRINT_OPT_DEC | PRINT_OPT_HEX | PRINT_OPT_HEXDUMP, AbsolutePos);
 
-  printf(TAB_CHAR "Characteristics: %d (0x%08X):\n",
+  cprintf(CVALUE, TAB_CHAR"Characteristics: ");
+  printf("%d (0x%08X):\n",
     pImageSectionHeader->Characteristics,
     pImageSectionHeader->Characteristics);
   PrintImageFileSectionCharacteristics(pImageSectionHeader->Characteristics);
-  putchar('\n');
   HexDump(&pImageSectionHeader->Characteristics, 4, AbsolutePos);
 }
 
@@ -597,7 +587,7 @@ void DumpDisassembly(uint8_t* CodeBytes, size_t CodeSize,
   uint8_t* InstOffset = StartAddr;
 
   INSTRUCTION Instruction = { 0 };
-  while (DASM_INVALID_INSTRUCTION != 
+  while (DASM_INVALID_INSTRUCTION !=
     (InstructionSize = dasm(CodeBytes, CodeSize, &Instruction, InstOffset))) {
     CodeSize -= InstructionSize;
     CodeBytes += InstructionSize;
@@ -605,7 +595,8 @@ void DumpDisassembly(uint8_t* CodeBytes, size_t CodeSize,
     for (uint8_t *bytes = CodeBytes- InstructionSize;
       bytes < CodeBytes; bytes++)
       cprintf(CHEXBYTE, "%02X ", *bytes);
-    for (size_t i = 6 - InstructionSize; i > 0; i--)
+    for (size_t i = 6 - InstructionSize;
+      (InstructionSize <= 6) && (i > 0); i--)
       printf("   ");
     cprintf(CHEXINST, "%s\n", Instruction.DecodedText);
 
@@ -639,7 +630,7 @@ void DumpImageSectionRawData(FILE* ObjFile,
     exit(1);
   }
 
-  printf(TAB_CHAR "Section Raw Data %d (0x%08X) byte%s long:\n",
+  cprintf(CVALUE, TAB_CHAR "Section Raw Data %d (0x%08X) byte%s long:\n",
     ImageSectionHeader->SizeOfRawData, ImageSectionHeader->SizeOfRawData,
     (ImageSectionHeader->SizeOfRawData != 1) ? "s" : "");
   size_t SectionRawDataFilePosition = ImageSectionHeader->PointerToRawData;
@@ -653,6 +644,62 @@ void DumpImageSectionRawData(FILE* ObjFile,
   }
 
   free(RawData);
+}
+
+void DumpOptionalHeaderFields(WORD HeaderTypeMagic, void* HeaderBytes) {
+  // TODO:
+}
+
+void DumpOptionalHeader(WORD SizeOfOptionalHeader, FILE* File,
+  size_t *AbsolutePos) {
+  cprintf(CTITLE, "Reading IMAGE_OPTIONAL_HEADER\n");
+  size_t ImageHeaderMinSize = sizeof(IMAGE_OPTIONAL_HEADER32)
+    - sizeof(IMAGE_DATA_DIRECTORY);
+  if (SizeOfOptionalHeader < ImageHeaderMinSize) {
+    cprintf(CERROR, "ERROR! Incomplete IMAGE_OPTIONAL_HEADER found.");
+    return;
+  }
+
+  // TODO: Dump IMAGE_OPTIONAL_HEADER
+  // TODO: Observe SizeOfOptionalHeader and NumberOfRvaAndSizes
+  // TODO: validate the optional header magic number for format
+  void* OptionalHeaderBytes = malloc(SizeOfOptionalHeader);
+  if (!OptionalHeaderBytes) {
+    ceprintf(CERROR,
+      "FAILED TO ALLOC %d BYTES to read IMAGE_OPTIONAL_HEADER\n");
+    // TODO: return a proper error code and handle there, instead of exit()
+    exit(1);
+  }
+
+  GetBytes(OptionalHeaderBytes, SizeOfOptionalHeader, File);
+
+  WORD Magic = ((PIMAGE_OPTIONAL_HEADER32)OptionalHeaderBytes)->Magic;
+  PrintWord(TAB_CHAR, "Magic (0x010B for PE32; 0x020B for PE32+)", Magic,
+    PRINT_OPT_DEC| PRINT_OPT_HEX|PRINT_OPT_HEXDUMP, AbsolutePos);
+
+  if (Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC ||
+    Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
+    DumpOptionalHeaderFields(Magic, OptionalHeaderBytes);
+  }
+  else {
+    ceprintf(CERROR, "Unknown IMAGE_NT_OPTIONAL_HDR_MAGIC\n");
+  }
+
+  free(OptionalHeaderBytes);
+}
+
+void DumpSectionHeaders(WORD NumberOfSections, FILE* ObjFile,
+  size_t* AbsolutePos) {
+  for (int i = 0; i < NumberOfSections; i++) {
+    IMAGE_SECTION_HEADER ImageSectionHeader = { 0 };
+    cprintf(CTITLE, "Reading IMAGE_SECTION_HEADER\n");
+    GetBytes(&ImageSectionHeader, IMAGE_SIZEOF_SECTION_HEADER, ObjFile);
+    DumpImageSectionHeader(&ImageSectionHeader, 0);
+
+    /* TOOD: Grouped Sections (Object Only) The "$"? character (dollar sign)
+       has a special interpretation in section names in object files. ... */
+    DumpImageSectionRawData(ObjFile, &ImageSectionHeader);
+  }
 }
 
 int DumpNTImg(FILE* File) {
@@ -677,10 +724,16 @@ int DumpNTImg(FILE* File) {
     // GetBytes(DosStub, DosStbuSize, File);
     // HexDump(DosStub, DosStbuSize, &AbsolutePos);
 
+    /* TODO: IMAGE_NT_HEADERS contains an IMAGE_OPTIONAL_HEADER(32 or 64).
+       IMAGE_OPTIONAL_HEADER contains an array of IMAGE_DATA_DIRECTORY with
+       up to IMAGE_NUMBEROF_DIRECTORY_ENTRIES (16) entries.
+       Valid images can contain less than 16 IMAGE_DATA_DIRECTORY in the
+       IMAGE_NT_HEADERS.IMAGE_OPTIONAL_HEADER.IMAGE_DATA_DIRECTORY[] array.*/
     IMAGE_NT_HEADERS ImageNTHeaders = { 0 };
     cprintf(CTITLE, "Reading IMAGE_NT_HEADERS\n");
-    GetBytes(&ImageNTHeaders, sizeof(IMAGE_NT_HEADERS), File,
-      ImageDOSHeader.e_lfanew);
+    GetBytes(&ImageNTHeaders,
+      sizeof(IMAGE_NT_HEADERS)-sizeof(IMAGE_OPTIONAL_HEADER),
+      File, ImageDOSHeader.e_lfanew);
     AbsolutePos = ImageDOSHeader.e_lfanew;
 
     PrintDword(TAB_CHAR, "Signature", ImageNTHeaders.Signature,
@@ -696,7 +749,12 @@ int DumpNTImg(FILE* File) {
     // TODO: AbsolutePos -= 2; to account for DWORD Signature;
     DumpImageFileHeader(&ImageNTHeaders.FileHeader, &AbsolutePos);
 
-    // TODO: Dump IMAGE_OPTIONAL_HEADER
+    if (ImageNTHeaders.FileHeader.SizeOfOptionalHeader > 0)
+      DumpOptionalHeader(ImageNTHeaders.FileHeader.SizeOfOptionalHeader,
+        File, &AbsolutePos);
+
+    DumpSectionHeaders(ImageNTHeaders.FileHeader.NumberOfSections, File,
+      &AbsolutePos);
 
     return 0;
 }
@@ -713,17 +771,7 @@ void DumpObj(FILE* ObjFile)
   /* TODO: Dump optional header(s), if any (Make sure to use the size
                                             of the optional header) */
 
-  for (int i = 0; i < ImageFileHeader.NumberOfSections; i++) {
-    IMAGE_SECTION_HEADER ImageSectionHeader = {0};
-    cprintf(CTITLE, "Reading IMAGE_SECTION_HEADER\n");
-    GetBytes(&ImageSectionHeader, IMAGE_SIZEOF_SECTION_HEADER, ObjFile);
-    DumpImageSectionHeader(&ImageSectionHeader, &AbsolutePos);
-
-    /* Grouped Sections (Object Only) The "$"? character (dollar sign) has
-       a special interpretation in section names in object files. ... */
-
-    DumpImageSectionRawData(ObjFile, &ImageSectionHeader);
-  }
+  DumpSectionHeaders(ImageFileHeader.NumberOfSections, ObjFile, &AbsolutePos);
 }
 
 int main(int argc, char *argv[])
