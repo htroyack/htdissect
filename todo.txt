@@ -111,3 +111,11 @@ Known cases of unusual aberrations:
         immediate64
           0110 1000 : imm64
 ----------------------------------------
+
+================================================================================
+IMPORTANT READNG
+================================================================================
+Art of Assembly Book
+Chapter Five Instruction Set Architecture
+https://www.plantation-productions.com/Webster/www.artofasm.com/Windows/HTML/ISA.html
+================================================================================

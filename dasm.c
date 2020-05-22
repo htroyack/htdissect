@@ -112,9 +112,9 @@ OPCODE OpCodes[0x100] = {
   {0x65, NULL},       // Instruction Prefixes Group 2 [SEG=GS (Prefix)]
   {0x66, NULL},       // Instruction Prefixes Group 3 [Operand Size (Prefix)]
   {0x67, NULL},       // Instruction Prefixes Group 4 [Address Size (Prefix)]
-  {0x68, "PUSH"},
+  {0x68, "PUSH", DASM_REQ_IMM32},
   {0x69, "IMUL"},
-  {0x6A, "PUSH"},
+  {0x6A, "PUSH", DASM_REQ_IMM8},
   {0x6B, "IMUL"},
   {0x6C, "INS"},      // TODO: INS OR INSB?
   {0x6D, "INS"},      // TODO: INS or INSW or INSD?
